@@ -1,11 +1,10 @@
-{ flake, inputs, pkgs, system, extraModules ? [ ], ... }:
+{ flake, inputs, pkgs, system, extraModules ? [ ], configDir ? null, ... }:
 
 let
-  # Keep this list in sync with upstream top-level command registration in:
-  # https://github.com/anomalyco/opencode/blob/dev/packages/opencode/src/index.ts
-  # The default TUI entrypoint is `$0 [project]` in:
-  # https://github.com/anomalyco/opencode/blob/dev/packages/opencode/src/cli/cmd/tui/thread.ts
-  # Aliases are intentionally excluded unless verified from upstream source.
+  emptyConfigDir = pkgs.runCommand "opencode-sandbox-empty-config" { } "mkdir $out";
+
+  resolvedConfigDir = if configDir != null then configDir else emptyConfigDir;
+
   opencodeCommands = [
     "acp"
     "mcp"
@@ -33,10 +32,10 @@ let
 
   guestSystem =
     {
-      aarch64-darwin = "aarch64-linux";
-      aarch64-linux = "aarch64-linux";
-      x86_64-darwin = "x86_64-linux";
-      x86_64-linux = "x86_64-linux";
+      "aarch64-darwin" = "aarch64-linux";
+      "aarch64-linux" = "aarch64-linux";
+      "x86_64-darwin" = "x86_64-linux";
+      "x86_64-linux" = "x86_64-linux";
     }.${system} or (throw "opencode-sandbox does not support host system ${system}");
 
   hostPkgs = pkgs;
@@ -71,6 +70,31 @@ let
           target = "/run/opencode-sandbox-host";
           securityModel = "mapped-xattr";
         };
+        virtualisation.sharedDirectories.opencode-config = {
+          source = ''"$CONFIG_DIR"'';
+          target = "/run/opencode-sandbox-ro/config";
+          securityModel = "none";
+        };
+
+        fileSystems."/run/opencode-sandbox-rw" = {
+          device = "tmpfs";
+          fsType = "tmpfs";
+          options = [ "mode=0755" ];
+          neededForBoot = true;
+        };
+
+        fileSystems."/root/.config/opencode" = {
+          overlay = {
+            lowerdir = [ "/run/opencode-sandbox-ro/config" ];
+            upperdir = "/run/opencode-sandbox-rw/upper";
+            workdir = "/run/opencode-sandbox-rw/work";
+            useStage1BaseDirectories = false;
+          };
+        };
+
+        systemd.tmpfiles.rules = [
+          "d /root/.config 0755 root root -"
+        ];
       }
     ] ++ extraModules;
   };
@@ -86,12 +110,15 @@ pkgs.writeShellApplication {
 
   meta.license = pkgs.lib.licenses.mit;
 
+  passthru = { inherit emptyConfigDir; };
+
   text = ''
     set -euo pipefail
 
     share_path="$PWD"
     opencode_args=()
     env_files=()
+    config_dir="${resolvedConfigDir}"
 
     while [ "$#" -gt 0 ]; do
       case "$1" in
@@ -102,6 +129,15 @@ pkgs.writeShellApplication {
             exit 2
           fi
           env_files+=("$1")
+          shift
+          ;;
+        --config-dir)
+          shift
+          if [ "$#" -eq 0 ]; then
+            printf 'opencode-sandbox: --config-dir requires a path\n' >&2
+            exit 2
+          fi
+          config_dir="$1"
           shift
           ;;
         *)
@@ -133,6 +169,13 @@ pkgs.writeShellApplication {
       exit 1
     fi
 
+    config_dir="$(${pkgs.coreutils}/bin/realpath "$config_dir")"
+
+    if [ ! -d "$config_dir" ]; then
+      printf 'opencode-sandbox: config directory not found: %s\n' "$config_dir" >&2
+      exit 1
+    fi
+
     runtime_dir="$(${pkgs.coreutils}/bin/mktemp -d "''${TMPDIR:-/tmp}/opencode-sandbox.XXXXXX")"
     trap 'rm -rf "$runtime_dir"' EXIT INT TERM
 
@@ -145,7 +188,7 @@ pkgs.writeShellApplication {
       : > "$runtime_dir/opencode-env"
       for f in "''${env_files[@]}"; do
         cat "$f" >> "$runtime_dir/opencode-env"
-      done
+      fi
     fi
 
     set -- ${vmRunner}/bin/run-*-vm
@@ -156,6 +199,7 @@ pkgs.writeShellApplication {
 
     export SHARED_DIR="$share_path"
     export OPENCODE_SANDBOX_CONTROL_DIR="$runtime_dir"
+    export CONFIG_DIR="$config_dir"
     export NIX_DISK_IMAGE="$runtime_dir/opencode-sandbox.qcow2"
 
     exec "$1"
