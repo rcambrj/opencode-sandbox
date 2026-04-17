@@ -1,3 +1,3 @@
-{ flake, system, ... }:
+{ perSystem, ... }:
 
-flake.packages.${system}.opencode-sandbox
+perSystem.self.opencode-sandbox-test

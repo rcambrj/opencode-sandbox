@@ -1,6 +1,35 @@
 { flake, inputs, pkgs, system, extraModules ? [ ], ... }:
 
 let
+  # Keep this list in sync with upstream top-level command registration in:
+  # https://github.com/anomalyco/opencode/blob/dev/packages/opencode/src/index.ts
+  # The default TUI entrypoint is `$0 [project]` in:
+  # https://github.com/anomalyco/opencode/blob/dev/packages/opencode/src/cli/cmd/tui/thread.ts
+  opencodeCommands = [
+    "acp"
+    "mcp"
+    "attach"
+    "run"
+    "generate"
+    "debug"
+    "account"
+    "providers"
+    "agent"
+    "upgrade"
+    "uninstall"
+    "serve"
+    "web"
+    "models"
+    "stats"
+    "export"
+    "import"
+    "github"
+    "pr"
+    "session"
+    "plugin"
+    "db"
+  ];
+
   guestSystem =
     {
       aarch64-darwin = "aarch64-linux";
@@ -17,6 +46,10 @@ let
     system = guestSystem;
     specialArgs = {
       inherit flake inputs;
+      opencodeSandboxArgsFile = "/run/opencode-sandbox-host/opencode-args";
+      opencodeSandboxEnv = { };
+      opencodeSandboxExtraArgs = [ ];
+      opencodeSandboxShowMarkers = false;
       perSystem = guestPerSystem;
     };
     modules = [
@@ -31,6 +64,11 @@ let
         virtualisation.sharedDirectories.workspace = {
           source = ''"$SHARED_DIR"'';
           target = "/workspace";
+          securityModel = "mapped-xattr";
+        };
+        virtualisation.sharedDirectories.control = {
+          source = ''"$OPENCODE_SANDBOX_CONTROL_DIR"'';
+          target = "/run/opencode-sandbox-host";
           securityModel = "mapped-xattr";
         };
       }
@@ -49,12 +87,22 @@ pkgs.writeShellApplication {
   text = ''
     set -euo pipefail
 
-    if [ "$#" -gt 1 ]; then
-      printf 'usage: %s [shared-directory]\n' "$0" >&2
-      exit 2
+    share_path="$PWD"
+    opencode_args=()
+
+    if [ "$#" -gt 0 ]; then
+      case "$1" in
+        ${builtins.concatStringsSep "|" opencodeCommands})
+          opencode_args+=("$@")
+          ;;
+        *)
+          share_path="$1"
+          shift
+          opencode_args+=("$@")
+          ;;
+      esac
     fi
 
-    share_path="''${1:-$PWD}"
     share_path="$(${pkgs.coreutils}/bin/realpath "$share_path")"
 
     if [ ! -d "$share_path" ]; then
@@ -65,6 +113,11 @@ pkgs.writeShellApplication {
     runtime_dir="$(${pkgs.coreutils}/bin/mktemp -d "''${TMPDIR:-/tmp}/opencode-sandbox.XXXXXX")"
     trap 'rm -rf "$runtime_dir"' EXIT INT TERM
 
+    : > "$runtime_dir/opencode-args"
+    for arg in "''${opencode_args[@]}"; do
+      printf '%s\n' "$arg" >> "$runtime_dir/opencode-args"
+    done
+
     set -- ${vmRunner}/bin/run-*-vm
     if [ "$#" -ne 1 ]; then
       printf 'opencode-sandbox: could not resolve VM runner in %s/bin\n' ${pkgs.lib.escapeShellArg (toString vmRunner)} >&2
@@ -72,6 +125,7 @@ pkgs.writeShellApplication {
     fi
 
     export SHARED_DIR="$share_path"
+    export OPENCODE_SANDBOX_CONTROL_DIR="$runtime_dir"
     export NIX_DISK_IMAGE="$runtime_dir/opencode-sandbox.qcow2"
 
     exec "$1"
