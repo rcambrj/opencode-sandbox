@@ -12,6 +12,7 @@ hostPkgs.testers.runNixOSTest {
 
   testScript = ''
     import os
+    import shutil
     import subprocess
     import tempfile
 
@@ -24,12 +25,16 @@ hostPkgs.testers.runNixOSTest {
 
     config_dir = tempfile.mkdtemp(prefix="opencode-sandbox-test-config-")
 
-    def run(*args, env_file_arg=env_file, config_dir_arg=config_dir):
+    def run(*args, env_file_arg=env_file, config_dir_arg=config_dir, data_dir_arg=None, cache_dir_arg=None):
         cmd = [launcher]
         if env_file_arg is not None:
             cmd += ["--env-file", env_file_arg]
         if config_dir_arg is not None:
             cmd += ["--config-dir", config_dir_arg]
+        if data_dir_arg is not None:
+            cmd += ["--data-dir", data_dir_arg]
+        if cache_dir_arg is not None:
+            cmd += ["--cache-dir", cache_dir_arg]
         cmd += list(args)
         result = subprocess.run(
             cmd,
@@ -56,8 +61,17 @@ hostPkgs.testers.runNixOSTest {
     finally:
         os.rmdir(tmpdir)
 
+    data_dir = tempfile.mkdtemp(prefix="opencode-sandbox-test-data-")
+    cache_dir = tempfile.mkdtemp(prefix="opencode-sandbox-test-cache-")
+    try:
+        out = run("models", data_dir_arg=data_dir, cache_dir_arg=cache_dir)
+        assert "Database migration complete." in out, f"expected 'Database migration complete.' in output, got: {out!r}"
+    finally:
+        shutil.rmtree(data_dir)
+        shutil.rmtree(cache_dir)
+
     os.remove(env_file)
     os.rmdir(env_dir)
-    os.rmdir(config_dir)
+    shutil.rmtree(config_dir)
   '';
 }

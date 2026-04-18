@@ -2,6 +2,7 @@
 
 let
   emptyConfigDir = pkgs.runCommand "opencode-sandbox-empty-config" { } "mkdir $out";
+  emptySharedDir = pkgs.runCommand "opencode-sandbox-empty-shared" { } "mkdir $out";
 
   resolvedConfigDir = if configDir != null then configDir else emptyConfigDir;
 
@@ -72,29 +73,19 @@ let
         };
         virtualisation.sharedDirectories.opencode-config = {
           source = ''"$CONFIG_DIR"'';
-          target = "/run/opencode-sandbox-ro/config";
-          securityModel = "none";
+          target = "/run/opencode-sandbox/config/opencode";
+          securityModel = "mapped-xattr";
         };
-
-        fileSystems."/run/opencode-sandbox-rw" = {
-          device = "tmpfs";
-          fsType = "tmpfs";
-          options = [ "mode=0755" ];
-          neededForBoot = true;
+        virtualisation.sharedDirectories.opencode-data = {
+          source = ''"$DATA_DIR"'';
+          target = "/run/opencode-sandbox/data/opencode";
+          securityModel = "mapped-xattr";
         };
-
-        fileSystems."/root/.config/opencode" = {
-          overlay = {
-            lowerdir = [ "/run/opencode-sandbox-ro/config" ];
-            upperdir = "/run/opencode-sandbox-rw/upper";
-            workdir = "/run/opencode-sandbox-rw/work";
-            useStage1BaseDirectories = false;
-          };
+        virtualisation.sharedDirectories.opencode-cache = {
+          source = ''"$CACHE_DIR"'';
+          target = "/run/opencode-sandbox/cache/opencode";
+          securityModel = "mapped-xattr";
         };
-
-        systemd.tmpfiles.rules = [
-          "d /root/.config 0755 root root -"
-        ];
       }
     ] ++ extraModules;
   };
@@ -119,6 +110,10 @@ pkgs.writeShellApplication {
     opencode_args=()
     env_files=()
     config_dir="${resolvedConfigDir}"
+    data_dir="${emptySharedDir}"
+    cache_dir="${emptySharedDir}"
+    has_data_dir=0
+    has_cache_dir=0
 
     while [ "$#" -gt 0 ]; do
       case "$1" in
@@ -138,6 +133,26 @@ pkgs.writeShellApplication {
             exit 2
           fi
           config_dir="$1"
+          shift
+          ;;
+        --data-dir)
+          shift
+          if [ "$#" -eq 0 ]; then
+            printf 'opencode-sandbox: --data-dir requires a path\n' >&2
+            exit 2
+          fi
+          data_dir="$1"
+          has_data_dir=1
+          shift
+          ;;
+        --cache-dir)
+          shift
+          if [ "$#" -eq 0 ]; then
+            printf 'opencode-sandbox: --cache-dir requires a path\n' >&2
+            exit 2
+          fi
+          cache_dir="$1"
+          has_cache_dir=1
           shift
           ;;
         *)
@@ -176,6 +191,22 @@ pkgs.writeShellApplication {
       exit 1
     fi
 
+    if [ "$has_data_dir" -eq 1 ]; then
+      data_dir="$(${pkgs.coreutils}/bin/realpath "$data_dir")"
+      if [ ! -d "$data_dir" ]; then
+        printf 'opencode-sandbox: data directory not found: %s\n' "$data_dir" >&2
+        exit 1
+      fi
+    fi
+
+    if [ "$has_cache_dir" -eq 1 ]; then
+      cache_dir="$(${pkgs.coreutils}/bin/realpath "$cache_dir")"
+      if [ ! -d "$cache_dir" ]; then
+        printf 'opencode-sandbox: cache directory not found: %s\n' "$cache_dir" >&2
+        exit 1
+      fi
+    fi
+
     runtime_dir="$(${pkgs.coreutils}/bin/mktemp -d "''${TMPDIR:-/tmp}/opencode-sandbox.XXXXXX")"
     trap 'rm -rf "$runtime_dir"' EXIT INT TERM
 
@@ -188,7 +219,15 @@ pkgs.writeShellApplication {
       : > "$runtime_dir/opencode-env"
       for f in "''${env_files[@]}"; do
         cat "$f" >> "$runtime_dir/opencode-env"
-      fi
+      done
+    fi
+
+    if [ "$has_data_dir" -eq 1 ]; then
+      : > "$runtime_dir/opencode-has-data-dir"
+    fi
+
+    if [ "$has_cache_dir" -eq 1 ]; then
+      : > "$runtime_dir/opencode-has-cache-dir"
     fi
 
     set -- ${vmRunner}/bin/run-*-vm
@@ -200,6 +239,8 @@ pkgs.writeShellApplication {
     export SHARED_DIR="$share_path"
     export OPENCODE_SANDBOX_CONTROL_DIR="$runtime_dir"
     export CONFIG_DIR="$config_dir"
+    export DATA_DIR="$data_dir"
+    export CACHE_DIR="$cache_dir"
     export NIX_DISK_IMAGE="$runtime_dir/opencode-sandbox.qcow2"
 
     exec "$1"
