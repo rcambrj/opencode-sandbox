@@ -1,4 +1,4 @@
-{ flake, inputs, pkgs, system, extraModules ? [ ], ... }:
+{ flake, inputs, pkgs, system, extraModules ? [ ], showBootLogs ? false, ... }:
 
 let
   emptyConfigDir = pkgs.runCommand "opencode-sandbox-empty-config" { } "mkdir $out";
@@ -21,6 +21,7 @@ let
     system = guestSystem;
     specialArgs = {
       inherit flake inputs;
+      opencodeSandboxShowBootLogs = showBootLogs;
       opencodeSandboxShowMarkers = false;
       perSystem = guestPerSystem;
     };

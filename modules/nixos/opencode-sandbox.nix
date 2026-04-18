@@ -16,6 +16,12 @@ in
       description = "Additional guest NixOS modules to include in the opencode sandbox VM.";
     };
 
+    showBootLogs = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Show guest kernel and systemd boot logs on the sandbox console.";
+    };
+
     envFile = lib.mkOption {
       type = lib.types.nullOr lib.types.path;
       default = null;
@@ -65,6 +71,7 @@ in
       (pkgs.writeShellScriptBin "opencode-sandbox" ''
         exec ${lib.getExe (pkg.override {
           extraModules = cfg.extraModules;
+          showBootLogs = cfg.showBootLogs;
         })} \
           ${optionalFlag "env-file" cfg.envFile} \
           ${optionalFlag "config-dir" cfg.configDir} \
