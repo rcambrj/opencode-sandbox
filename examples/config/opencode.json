@@ -1,0 +1,11 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "permission": {
+    "bash": {
+      // sandboxed as root, go wild
+      "*": "allow"
+    }
+  },
+  // easy to test that this file is loaded:
+  "default_agent": "plan"
+}
