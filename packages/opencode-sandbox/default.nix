@@ -1,35 +1,8 @@
-{ flake, inputs, pkgs, system, extraModules ? [ ], configDir ? null, ... }:
+{ flake, inputs, pkgs, system, extraModules ? [ ], ... }:
 
 let
   emptyConfigDir = pkgs.runCommand "opencode-sandbox-empty-config" { } "mkdir $out";
   emptySharedDir = pkgs.runCommand "opencode-sandbox-empty-shared" { } "mkdir $out";
-
-  resolvedConfigDir = if configDir != null then configDir else emptyConfigDir;
-
-  opencodeCommands = [
-    "acp"
-    "mcp"
-    "attach"
-    "run"
-    "generate"
-    "debug"
-    "account"
-    "providers"
-    "agent"
-    "upgrade"
-    "uninstall"
-    "serve"
-    "web"
-    "models"
-    "stats"
-    "export"
-    "import"
-    "github"
-    "pr"
-    "session"
-    "plugin"
-    "db"
-  ];
 
   guestSystem =
     {
@@ -114,22 +87,21 @@ pkgs.writeShellApplication {
     set -euo pipefail
 
     share_path="$PWD"
-    opencode_args=()
     env_files=()
-    config_dir="${resolvedConfigDir}"
+    config_dir="${emptyConfigDir}"
     data_dir="${emptySharedDir}"
     cache_dir="${emptySharedDir}"
     has_data_dir=0
     has_cache_dir=0
 
-    post_separator_args=()
+    opencode_args=()
     saw_share_path=0
 
     while [ "$#" -gt 0 ]; do
       case "$1" in
         --)
           shift
-          post_separator_args+=("$@")
+          opencode_args+=("$@")
           break
           ;;
         --env-file)
@@ -203,8 +175,6 @@ pkgs.writeShellApplication {
           ;;
       esac
     done
-
-    opencode_args+=("''${post_separator_args[@]}")
 
     share_path="$(${pkgs.coreutils}/bin/realpath "$share_path")"
 

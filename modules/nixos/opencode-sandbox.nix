@@ -64,7 +64,6 @@ in
     environment.systemPackages = [
       (pkgs.writeShellScriptBin "opencode-sandbox" ''
         exec ${lib.getExe (pkg.override {
-          inherit (cfg) configDir;
           extraModules = cfg.extraModules;
         })} \
           ${optionalFlag "env-file" cfg.envFile} \
