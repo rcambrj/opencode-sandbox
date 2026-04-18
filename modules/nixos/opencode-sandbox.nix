@@ -64,12 +64,21 @@ in
         Optional host directory mounted inside the VM and exposed to opencode via XDG_CACHE_HOME.
       '';
     };
+
+    package = lib.mkOption {
+      type = lib.types.nullOr lib.types.package;
+      default = null;
+      description = ''
+        Custom opencode-sandbox package to use. When null, uses the flake's built package
+        with extraModules and showBootLogs applied. When set, this package is used as-is.
+      '';
+    };
   };
 
   config = lib.mkIf cfg.enable {
     environment.systemPackages = [
       (pkgs.writeShellScriptBin "opencode-sandbox" ''
-        exec ${lib.getExe (pkg.override {
+        exec ${lib.getExe (if cfg.package != null then cfg.package else pkg.override {
           extraModules = cfg.extraModules;
           showBootLogs = cfg.showBootLogs;
         })} \
