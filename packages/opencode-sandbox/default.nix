@@ -86,6 +86,13 @@ let
           target = "/run/opencode-sandbox/cache/opencode";
           securityModel = "mapped-xattr";
         };
+
+        systemd.tmpfiles.rules = [
+          "d /run/opencode-sandbox 0755 root root -"
+          "d /run/opencode-sandbox/config 0755 root root -"
+          "d /run/opencode-sandbox/data 0755 root root -"
+          "d /run/opencode-sandbox/cache 0755 root root -"
+        ];
       }
     ] ++ extraModules;
   };
