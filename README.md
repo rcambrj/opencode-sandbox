@@ -49,8 +49,8 @@ Import the NixOS module into your system configuration and enable it:
   programs.opencode-sandbox = {
     enable = true;
 
-    envFile = pkgs.writeText "opencode-sandbox-env" ''
-      OPENCODE_ENABLE_EXA=1
+    envFile = pkgs.writeText "opencode-sandbox-env" (lib.generators.toINI { } {
+      OPENCODE_ENABLE_EXA = 1;
 
       # DON'T put real API keys into the nix store
       # These lines are just here as guidance
@@ -58,10 +58,10 @@ Import the NixOS module into your system configuration and enable it:
       # - agenix-template: https://github.com/jhillyerd/agenix-template
       # - sops-nix templates: https://github.com/mic92/sops-nix#templates
       # 
-      # OPENCODE_API_KEY=your-opencode-go-key
-      # OPENAI_API_KEY=your-openai-key
-      # ZHIPU_API_KEY=your-zai-coding-plan-key
-    '';
+      # OPENCODE_API_KEY = "your-opencode-go-key";
+      # OPENAI_API_KEY = "your-openai-key";
+      # ZHIPU_API_KEY = "your-zai-coding-plan-key";
+    });
 
     configDir = let
       opencode-json = pkgs.writeText "opencode.json" (builtins.toJSON {
@@ -91,6 +91,8 @@ Import the NixOS module into your system configuration and enable it:
     in pkgs.runCommand "opencode-sandbox-config" {} ''
       mkdir -p "$out"
       cp ${opencode-json} "$out/opencode.json"
+
+      # put other files in $out/, like AGENTS.md & plugin configuration
     '';
 
     # optional
