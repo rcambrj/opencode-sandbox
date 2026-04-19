@@ -52,15 +52,15 @@ Import the NixOS module into your system configuration and enable it:
     envFile = pkgs.writeText "opencode-sandbox-env" (lib.generators.toKeyValue { } {
       OPENCODE_ENABLE_EXA = 1;
 
-      # DON'T put real API keys into the nix store
-      # These lines are just here as guidance
-      # Use either:
-      # - agenix-template: https://github.com/jhillyerd/agenix-template
-      # - sops-nix templates: https://github.com/mic92/sops-nix#templates
-      # 
       # OPENCODE_API_KEY = "your-opencode-go-key";
       # OPENAI_API_KEY = "your-openai-key";
       # ZHIPU_API_KEY = "your-zai-coding-plan-key";
+      #
+      # This seems limited, put auth.json in dataDir instead
+      # Get the contents from ~/.local/share/opencode/auth.json
+      #
+      # Also, don't put secrets into the nix store
+      # Use sops-nix or agenix (with agenix-template) instead
     });
 
     configDir = let
