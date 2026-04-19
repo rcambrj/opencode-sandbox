@@ -76,7 +76,7 @@ in
 
   config = lib.mkIf cfg.enable {
     environment.systemPackages = [
-      flake.lib.mkWrappedOpencodeSandbox {
+      (flake.lib.mkWrappedOpencodeSandbox {
         inherit pkgs;
         package = if cfg.package != null then cfg.package else pkg.override {
           extraModules = cfg.extraModules;
@@ -86,7 +86,7 @@ in
         configDir = cfg.configDir;
         dataDir = cfg.dataDir;
         cacheDir = cfg.cacheDir;
-      }
+      })
     ];
   };
 }
