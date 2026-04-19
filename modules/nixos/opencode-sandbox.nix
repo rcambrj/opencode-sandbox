@@ -31,8 +31,8 @@ in
 
     configDir = lib.mkOption {
       type = lib.types.path;
-      default = pkg.emptyConfigDir;
-      defaultText = lib.literalExpression "opencode-sandbox.emptyConfigDir";
+      default = pkg.emptyDir;
+      defaultText = lib.literalExpression "opencode-sandbox.emptyDir";
       description = ''
         Host directory mounted inside the VM and exposed to opencode via XDG_CONFIG_HOME.
         Defaults to an empty directory.

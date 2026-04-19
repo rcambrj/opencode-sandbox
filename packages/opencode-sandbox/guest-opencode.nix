@@ -10,25 +10,25 @@ let
     export OPENCODE_DB=:memory:
     export XDG_CONFIG_HOME=/mnt/opencode-sandbox/config
 
-    if [ -r /mnt/opencode-sandbox-host/opencode-has-data-dir ]; then
+    if [ -r /mnt/opencode-sandbox/control/opencode-has-data-dir ]; then
       export XDG_DATA_HOME=/mnt/opencode-sandbox/data
     fi
 
-    if [ -r /mnt/opencode-sandbox-host/opencode-has-cache-dir ]; then
+    if [ -r /mnt/opencode-sandbox/control/opencode-has-cache-dir ]; then
       export XDG_CACHE_HOME=/mnt/opencode-sandbox/cache
     fi
 
     cd /workspace
 
-    if [ -r /mnt/opencode-sandbox-host/opencode-env ]; then
+    if [ -r /mnt/opencode-sandbox/control/opencode-env ]; then
       set -a
-      source /mnt/opencode-sandbox-host/opencode-env
+      source /mnt/opencode-sandbox/control/opencode-env
       set +a
     fi
 
     declare -a args=()
-    if [ -r /mnt/opencode-sandbox-host/opencode-args ]; then
-      mapfile -t args < /mnt/opencode-sandbox-host/opencode-args
+    if [ -r /mnt/opencode-sandbox/control/opencode-args ]; then
+      mapfile -t args < /mnt/opencode-sandbox/control/opencode-args
     fi
 
     command=( ${lib.getExe opencode} "''${args[@]}" )
