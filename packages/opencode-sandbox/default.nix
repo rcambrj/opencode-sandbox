@@ -45,7 +45,7 @@ pkgs.writeShellApplication {
 
   meta.license = pkgs.lib.licenses.mit;
 
-  passthru = { inherit emptyDir; };
+  passthru = { inherit emptyDir vmSystem; };
 
   text = ''
     set -euo pipefail

@@ -13,27 +13,27 @@ in
   virtualisation.sharedDirectories.workspace = {
     source = ''"$OPENCODE_SANDBOX_WORKSPACE_DIR"'';
     target = "/workspace";
-    securityModel = "mapped-xattr";
+    securityModel = "none";
   };
   virtualisation.sharedDirectories.control = {
     source = ''"$OPENCODE_SANDBOX_CONTROL_DIR"'';
     target = "/mnt/opencode-sandbox/control";
-    securityModel = "mapped-xattr";
+    securityModel = "none";
   };
   virtualisation.sharedDirectories.opencode-config = {
     source = ''"$OPENCODE_SANDBOX_CONFIG_DIR"'';
     target = "/mnt/opencode-sandbox/config/opencode";
-    securityModel = "mapped-xattr";
+    securityModel = "none";
   };
   virtualisation.sharedDirectories.opencode-data = {
     source = ''"$OPENCODE_SANDBOX_DATA_DIR"'';
     target = "/mnt/opencode-sandbox/data/opencode";
-    securityModel = "mapped-xattr";
+    securityModel = "none";
   };
   virtualisation.sharedDirectories.opencode-cache = {
     source = ''"$OPENCODE_SANDBOX_CACHE_DIR"'';
     target = "/mnt/opencode-sandbox/cache/opencode";
-    securityModel = "mapped-xattr";
+    securityModel = "none";
   };
   systemd.tmpfiles.rules = [
     "d /mnt/opencode-sandbox 0755 root root -"
