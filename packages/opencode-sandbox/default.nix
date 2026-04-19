@@ -42,30 +42,30 @@ let
         };
         virtualisation.sharedDirectories.control = {
           source = ''"$OPENCODE_SANDBOX_CONTROL_DIR"'';
-          target = "/run/opencode-sandbox-host";
+          target = "/mnt/opencode-sandbox-host";
           securityModel = "mapped-xattr";
         };
         virtualisation.sharedDirectories.opencode-config = {
           source = ''"$CONFIG_DIR"'';
-          target = "/run/opencode-sandbox/config/opencode";
+          target = "/mnt/opencode-sandbox/config/opencode";
           securityModel = "mapped-xattr";
         };
         virtualisation.sharedDirectories.opencode-data = {
           source = ''"$DATA_DIR"'';
-          target = "/run/opencode-sandbox/data/opencode";
+          target = "/mnt/opencode-sandbox/data/opencode";
           securityModel = "mapped-xattr";
         };
         virtualisation.sharedDirectories.opencode-cache = {
           source = ''"$CACHE_DIR"'';
-          target = "/run/opencode-sandbox/cache/opencode";
+          target = "/mnt/opencode-sandbox/cache/opencode";
           securityModel = "mapped-xattr";
         };
 
         systemd.tmpfiles.rules = [
-          "d /run/opencode-sandbox 0755 root root -"
-          "d /run/opencode-sandbox/config 0755 root root -"
-          "d /run/opencode-sandbox/data 0755 root root -"
-          "d /run/opencode-sandbox/cache 0755 root root -"
+          "d /mnt/opencode-sandbox 0755 root root -"
+          "d /mnt/opencode-sandbox/config 0755 root root -"
+          "d /mnt/opencode-sandbox/data 0755 root root -"
+          "d /mnt/opencode-sandbox/cache 0755 root root -"
         ];
       }
     ] ++ extraModules;

@@ -50,7 +50,7 @@ in
         locking and shared-memory behavior SQLite expects, so the sandbox defaults OPENCODE_DB to :memory:.
 
         If you want database-backed persistence anyway, you can opt in via env file with a SQLite URI such as
-        `OPENCODE_DB=file:/run/opencode-sandbox/data/opencode.db?vfs=unix-excl`.
+        `OPENCODE_DB=file:/mnt/opencode-sandbox/data/opencode.db?vfs=unix-excl`.
 
         Warning: `vfs=unix-excl` avoids the shared-memory WAL path, but it is only appropriate when exactly one
         sandbox instance uses that database path at a time. Concurrent instances pointed at the same database can

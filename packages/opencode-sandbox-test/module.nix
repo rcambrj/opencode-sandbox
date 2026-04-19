@@ -106,5 +106,13 @@ hostPkgs.testers.runNixOSTest {
     out = run_opencode_sandbox(machineCustomEnv, "--", "test")
     args = parse_args(out)
     assert "--env-file" in args, f"expected --env-file when configured, got: {args!r}"
+
+    out = run_opencode_sandbox(machine, "--", "models")
+    args = parse_args(out)
+    assert "models" in args, f"expected 'models' arg after -- to be forwarded, got: {args!r}"
+
+    out = run_opencode_sandbox(machine, "--", "serve", "--hostname", "0.0.0.0")
+    args = parse_args(out)
+    assert "serve" in args and "--hostname" in args and "0.0.0.0" in args, f"expected multiple args after -- to be forwarded, got: {args!r}"
   '';
 }
