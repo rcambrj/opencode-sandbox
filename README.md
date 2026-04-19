@@ -2,7 +2,7 @@
 
 Run `opencode` inside an ephemeral VM, with optional host-backed config, data, and cache directories.
 
-Requires `nix`
+Requires `nix`. Don't have it? [Install nix](https://github.com/DeterminateSystems/nix-installer#install-determinate-nix) now.
 
 ## Getting Started
 
@@ -15,9 +15,8 @@ nix run github:rcambrj/opencode-sandbox#opencode-sandbox
 # Or clone this repository and run it
 nix run .#opencode-sandbox
 
-# Pass sandbox args before `--`:
-nix run .#opencode-sandbox -- /projects/my-project
-nix run .#opencode-sandbox -- \
+# Pass sandbox args after one `--`:
+nix run .#opencode-sandbox -- ~/projects/my-project \
   --data-dir ./data \
   --cache-dir ./cache \
   --config-dir ./config
@@ -26,8 +25,8 @@ nix run .#opencode-sandbox -- \
 nix run .#opencode-sandbox -- -- --help
 nix run .#opencode-sandbox -- /projects/my-project -- models
 
-# Inside the VM, the shared project is mounted at /workspace.
-# Do not pass the host path through to opencode:
+# Inside the VM, the project is mounted at /workspace.
+# Don't pass the host path through to opencode:
 nix run .#opencode-sandbox -- -- /projects/my-project
 ```
 
@@ -77,6 +76,7 @@ Import the NixOS module and enable it:
     showBootLogs = false;
     extraModules = [
       {
+        # for `opencode-sandbox -- serve --hostname 0.0.0.0 --port 4096`
         networking.firewall.allowedTCPPorts = [ 4096 ];
       }
     ];
@@ -85,7 +85,25 @@ Import the NixOS module and enable it:
 ```
 
 This installs `opencode-sandbox` into the system profile.
-The firewall example is useful when running `opencode serve --hostname 0.0.0.0 --port 4096` inside the guest.
+
+```sh
+# Now run it with
+opencode-sandbox
+
+# Pass sandbox args before `--`:
+opencode-sandbox ~/projects/my-project \
+  --data-dir ./data \
+  --cache-dir ./cache \
+  --config-dir ./config
+
+# Pass `opencode` arguments after `--`:
+opencode-sandbox -- --help
+opencode-sandbox /projects/my-project -- models
+
+# Inside the VM, the project is mounted at /workspace.
+# Don't pass the host path through to opencode:
+opencode-sandbox -- /projects/my-project
+```
 
 ## Notes
 
