@@ -4,7 +4,7 @@ let
   inherit (inputs.nixpkgs) lib;
 
   optionalFlag = name: value:
-    lib.optionalString (value != null) "--${name} ${lib.escapeShellArg (toString value)}";
+    lib.optionalString (value != null) "--${name}=${lib.escapeShellArg (toString value)}";
 in
 {
   inherit optionalFlag;
