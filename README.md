@@ -4,9 +4,7 @@ Run `opencode` inside an ephemeral VM, with optional host-backed config, data, a
 
 Requires `nix`. Don't have it? [Install nix](https://github.com/DeterminateSystems/nix-installer#install-determinate-nix) now.
 
-## Getting Started
-
-### Quick
+## Quick start
 
 ```sh
 # Run it directly from this flake:
@@ -30,7 +28,7 @@ nix run .#opencode-sandbox -- /projects/my-project -- models
 nix run .#opencode-sandbox -- -- /projects/my-project
 ```
 
-### Complete setup
+## Full configuration
 
 Add this repository to your flake inputs:
 
@@ -40,7 +38,7 @@ Add this repository to your flake inputs:
 }
 ```
 
-Import the NixOS module and enable it:
+Import the NixOS module into your system configuration and enable it:
 
 ```nix
 {
@@ -53,6 +51,16 @@ Import the NixOS module and enable it:
 
     envFile = pkgs.writeText "opencode-sandbox-env" ''
       OPENCODE_ENABLE_EXA=1
+
+      # DON'T put real API keys into the nix store
+      # These lines are just here as guidance
+      # Use either:
+      # - agenix-template: https://github.com/jhillyerd/agenix-template
+      # - sops-nix templates: https://github.com/mic92/sops-nix#templates
+      # 
+      # OPENCODE_API_KEY=your-opencode-go-key
+      # OPENAI_API_KEY=your-openai-key
+      # ZHIPU_API_KEY=your-zai-coding-plan-key
     '';
 
     configDir = let
@@ -64,6 +72,21 @@ Import the NixOS module and enable it:
           "*" = "allow";
         };
         default_agent = "plan";
+
+        # provider/model examples
+        provider = {
+          opencode-go.models."qwen3.5-plus" = {};
+          openai.models."gpt-5.4" = {};
+          zai-coding-plan.model."glm-5.1" = {};
+          ollama = {
+            # Ollama is expected to run outside the sandbox VM.
+            # Set `baseURL` to an endpoint reachable from inside the guest.
+            # When Ollama is exposed on the VM's host, the QEMU default gateway is `10.0.2.2`:
+            options.baseURL = "http://10.0.2.2:11434/v1";
+            models."llama3.1" = {};
+          };
+        };
+
       });
     in pkgs.runCommand "opencode-sandbox-config" {} ''
       mkdir -p "$out"
