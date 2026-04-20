@@ -1,7 +1,11 @@
 builds:
   include:
-    - "checks.aarch64-darwin.opencode-sandbox"
-    # - "checks.aarch64-linux.opencode-sandbox"
-    # - "checks.x86_64-darwin.opencode-sandbox"
+    # run the tests for one system
+    # note: can't run the test on aarch64-darwin
     - "checks.x86_64-linux.opencode-sandbox"
+
+    # build+cache for other systems
+    - "packages.aarch64-darwin.opencode-sandbox"
+    - "packages.aarch64-linux.opencode-sandbox"
+    - "packages.x86_64-darwin.opencode-sandbox"
   exclude: []
