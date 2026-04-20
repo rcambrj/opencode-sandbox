@@ -206,6 +206,8 @@ pkgs.writeShellApplication {
 
     trap 'kill "$vm_pid" 2>/dev/null || true; wait "$vm_pid" 2>/dev/null || true; rm -rf "$control_dir"' EXIT INT TERM
 
+    echo 'opencode-sandbox: starting VM, waiting for SSH...' >&2
+
     max_attempts=120
     attempt=0
     while [ $attempt -lt $max_attempts ]; do
