@@ -1,8 +1,6 @@
-{ lib, opencodeSandboxShowMarkers ? false, perSystem, pkgs, ... }:
+{ lib, opencodeSandboxShowMarkers ? false, opencode, pkgs, ... }:
 
 let
-  opencode = perSystem.opencode.opencode;
-
   session = pkgs.writeShellScriptBin "opencode-sandbox-session" ''
     set -euo pipefail
 

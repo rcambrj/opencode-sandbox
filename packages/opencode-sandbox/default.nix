@@ -12,10 +12,6 @@ let
     }.${system} or (throw "opencode-sandbox does not support host system ${system}");
 
   hostPkgs = pkgs;
-  guestPerSystem = {
-    opencode = inputs.opencode.packages.${guestSystem};
-  };
-
   guestPkgs = import inputs.nixpkgs {
     system = guestSystem;
   };
@@ -42,7 +38,7 @@ let
       inherit flake inputs;
       opencodeSandboxShowBootLogs = showBootLogs;
       opencodeSandboxShowMarkers = false;
-      perSystem = guestPerSystem;
+      opencode = inputs.numtide-llm-agents.packages.${guestSystem}.opencode;
     };
     modules = [
       (inputs.nixpkgs + "/nixos/modules/virtualisation/qemu-vm.nix")
