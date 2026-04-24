@@ -26,24 +26,73 @@ let
 
   mkHarnessLauncherScript =
     { sessionCommand
+    , sessionPrelude ? (_: "")
+    , sessionLogLines ? (_: "")
     , extraInit ? (_: "")
     , extraCaseArms ? (_: "")
     , extraValidation ? (_: "")
     , extraControl ? (_: "")
     , extraExports ? (_: "")
     }:
-    args@{ name, emptyDir, vmRunner, coreutils, openssh, nixpkgsLib, guestSystem, ... }:
+    args@{ name, emptyDir, vmRunner, coreutils, openssh, nixpkgsLib, guestSystem, guestPkgs, pkgs, ... }:
     let
       sessionPkg = sessionCommand guestSystem;
       sessionExe = lib.getExe sessionPkg;
+      sessionPreludeText = sessionPrelude args;
+      sessionLogLinesText = sessionLogLines args;
       initText = extraInit args;
       caseArmsText = extraCaseArms args;
       validationText = extraValidation args;
       controlText = extraControl args;
       exportsText = extraExports args;
+      remoteScript = ''
+        set -euo pipefail
+
+        export HOME=/root
+        export SHELL=${guestPkgs.bashInteractive}/bin/bash
+
+        cd /workspace
+
+        if [ -r /mnt/agent-sandbox/control/agent-env ]; then
+          set -a
+          source /mnt/agent-sandbox/control/agent-env
+          set +a
+        fi
+
+        declare -a args=()
+        if [ -r /mnt/agent-sandbox/control/agent-args ]; then
+          mapfile -t args < /mnt/agent-sandbox/control/agent-args
+        fi
+
+        ${sessionPreludeText}
+
+        command=( ${sessionExe} "''${args[@]}" )
+        printf -v command_line '%q ' "''${command[@]}"
+        command_line="''${command_line% }"
+
+        {
+          printf 'cwd=%s\n' "$PWD"
+          printf 'command=%s\n' "$command_line"
+          ${sessionLogLinesText}
+        } | ${guestPkgs.systemd}/bin/systemd-cat -t ${name}
+
+        set +e
+        ${guestPkgs.bashInteractive}/bin/bash -c ${lib.escapeShellArg "${sessionExe} \"\$@\""} bash "''${args[@]}"
+        rc=$?
+        set -e
+
+        (
+          sleep 1
+          ${guestPkgs.systemd}/bin/poweroff || true
+        ) >/dev/null 2>&1 &
+        exit "$rc"
+      '';
     in
     ''
       set -euo pipefail
+
+      export HOME=/root
+      export SHELL=${pkgs.bashInteractive}/bin/bash
 
       share_path="$PWD"
       env_files=()
@@ -196,7 +245,7 @@ let
         -o "LogLevel=quiet" \
         -p "$ssh_port" \
         root@127.0.0.1 \
-        "${sessionExe}"
+        ${lib.escapeShellArg "${guestPkgs.bashInteractive}/bin/bash -c ${lib.escapeShellArg remoteScript}"}
       ssh_exit=$?
       set -e
 
@@ -257,12 +306,14 @@ let
         pkgs.openssh
       ];
 
+      excludeShellChecks = [ "SC1003" ];
+
       meta.license = pkgs.lib.licenses.mit;
 
       passthru = { inherit emptyDir vmSystem; };
 
       text = launcherScript {
-        inherit name emptyDir vmRunner guestSystem guestPkgs;
+        inherit name emptyDir vmRunner guestSystem guestPkgs pkgs;
         coreutils = pkgs.coreutils;
         openssh = pkgs.openssh;
         nixpkgsLib = inputs.nixpkgs.lib;

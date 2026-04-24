@@ -20,12 +20,13 @@ flake.lib.mkAgentSandbox {
   ];
 
   launcherScript = flake.lib.mkHarnessLauncherScript {
-    sessionCommand = guestSystem: import ./session-wrapper.nix {
-      inherit inputs;
-      pkgs = import inputs.nixpkgs { system = guestSystem; };
-      lib = inputs.nixpkgs.lib;
-      agentSandboxShowMarkers = false;
-    };
+    sessionCommand = guestSystem: inputs.numtide-llm-agents.packages.${guestSystem}.claude-code;
+    sessionPrelude = { ... }: ''
+      export CLAUDE_CONFIG_DIR=/mnt/agent-sandbox/config/claude
+    '';
+    sessionLogLines = { ... }: ''
+      printf 'CLAUDE_CONFIG_DIR=%s\n' "$CLAUDE_CONFIG_DIR"
+    '';
     extraInit = { emptyDir, ... }: ''
       config_dir="${emptyDir}"
     '';
