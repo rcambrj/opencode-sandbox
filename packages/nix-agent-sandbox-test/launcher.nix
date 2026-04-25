@@ -22,6 +22,7 @@ hostPkgs.testers.runNixOSTest {
 
     generic_launcher = ${builtins.toJSON genericLauncher}
     opencode_launcher = ${builtins.toJSON opencodeLauncher}
+    claude_launcher = ${builtins.toJSON (hostPkgs.lib.getExe flake.packages.${hostSystem}.claude-sandbox)}
 
     # --- Generic mock-sandbox tests ---
 
@@ -105,6 +106,23 @@ hostPkgs.testers.runNixOSTest {
     os.rmdir(env_dir)
     shutil.rmtree(data_dir)
     shutil.rmtree(cache_dir)
+    shutil.rmtree(config_dir)
+
+    # --- Claude sandbox tests ---
+
+    config_dir = tempfile.mkdtemp(prefix="claude-sandbox-test-config-")
+    with open(os.path.join(config_dir, "settings.json"), "w") as f:
+        json.dump({"permissions": {"allow": ["*"]}}, f)
+
+    out = run_cmd([claude_launcher, f"--config-dir={config_dir}", "models", "extra"], expect_success=False)
+    assert "unexpected launcher argument before --" in out, f"expected strict launcher failure, got: {out!r}"
+
+    out = run_cmd([claude_launcher, f"--config-dir={config_dir}", "--bogus", "--", "--help"], expect_success=False)
+    assert "unknown launcher flag before --" in out, f"expected unknown launcher flag failure, got: {out!r}"
+
+    out = run_cmd([claude_launcher, f"--config-dir={config_dir}", "--", "--help"])
+    assert "Usage" in out or "usage" in out, f"expected claude help output, got: {out!r}"
+
     shutil.rmtree(config_dir)
   '';
 }
