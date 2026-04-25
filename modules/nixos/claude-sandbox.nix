@@ -36,12 +36,11 @@ in
     };
 
     configDir = lib.mkOption {
-      type = lib.types.path;
-      default = pkg.emptyDir;
-      defaultText = lib.literalExpression "claude-sandbox.emptyDir";
+      type = lib.types.nullOr lib.types.path;
+      default = null;
       description = ''
-        Host directory mounted inside the VM and exposed to claude via CLAUDE_CONFIG_DIR.
-        Defaults to an empty directory.
+        Required host directory mounted inside the VM and exposed to claude via CLAUDE_CONFIG_DIR.
+        The directory must be writable by the sandbox launcher.
       '';
     };
 
@@ -56,6 +55,13 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    assertions = [
+      {
+        assertion = cfg.configDir != null;
+        message = "programs.claude-sandbox.configDir must be set to a writable host directory";
+      }
+    ];
+
     environment.systemPackages = [
       (flake.lib.mkWrappedAgentSandbox {
         inherit pkgs;

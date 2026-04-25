@@ -29,11 +29,20 @@ flake.lib.mkAgentSandbox {
       config-dir = "config_dir";
     };
     extraFinalize = { coreutils, name, emptyDir, ... }: ''
-      config_dir="''${config_dir-${emptyDir}}"
+      if [ -z "''${config_dir:-}" ] || [ "''${config_dir}" = "${emptyDir}" ]; then
+        printf '${name}: --config-dir is required and must be a writable host directory\n' >&2
+        exit 1
+      fi
+
       config_dir="$(${coreutils}/bin/realpath "$config_dir")"
 
       if [ ! -d "$config_dir" ]; then
         printf '${name}: config directory not found: %s\n' "$config_dir" >&2
+        exit 1
+      fi
+
+      if [ ! -w "$config_dir" ]; then
+        printf '${name}: config directory is not writable: %s\n' "$config_dir" >&2
         exit 1
       fi
 

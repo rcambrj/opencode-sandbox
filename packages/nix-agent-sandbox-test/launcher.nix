@@ -130,6 +130,9 @@ hostPkgs.testers.runNixOSTest {
     out = run_cmd([claude_launcher, f"--config-dir={config_dir}", "--bogus", "--", "--help"], expect_success=False)
     assert "unknown launcher flag before --" in out, f"expected unknown launcher flag failure, got: {out!r}"
 
+    out = run_cmd([claude_launcher, "--", "--help"], expect_success=False)
+    assert "--config-dir is required" in out, f"expected required config dir failure, got: {out!r}"
+
     out = run_cmd([claude_launcher, f"--config-dir={config_dir}", "--", "--help"])
     assert "Usage" in out or "usage" in out, f"expected claude help output, got: {out!r}"
 
