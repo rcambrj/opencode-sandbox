@@ -6,7 +6,7 @@ pkgs.mkShell {
       name = "opencode-sandbox-dev";
       package = flake.packages.${pkgs.stdenv.hostPlatform.system}.opencode-sandbox.override {
         extraModules = [];
-        showBootLogs = false;
+        showBootLogs = true;
       };
       flags = {
         env-file = pkgs.writeText "opencode-sandbox-env" ''
@@ -28,6 +28,16 @@ pkgs.mkShell {
         data-dir = null;
         cache-dir = null;
       };
+    })
+
+    (flake.lib.mkWrappedAgentSandbox {
+      inherit pkgs;
+      name = "claude-sandbox-dev";
+      package = flake.packages.${pkgs.stdenv.hostPlatform.system}.claude-sandbox.override {
+        extraModules = [];
+        showBootLogs = true;
+      };
+      flags = {};
     })
   ];
 

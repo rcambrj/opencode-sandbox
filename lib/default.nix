@@ -42,7 +42,7 @@ let
     , extraFlags ? { }
     , extraFinalize ? (_: "")
     }:
-    args@{ name, emptyDir, vmRunner, coreutils, openssh, nixpkgsLib, guestSystem, guestPkgs, pkgs, ... }:
+    args@{ name, emptyDir, vmRunner, coreutils, openssh, nixpkgsLib, guestSystem, guestPkgs, pkgs, sshMaxAttempts, ... }:
     let
       sessionCmd = sessionCommand args;
       caseArmsText = renderExtraFlags extraFlags;
@@ -174,7 +174,7 @@ let
 
       echo '${name}: starting VM, waiting for SSH...' >&2
 
-      max_attempts=15
+      max_attempts=${toString sshMaxAttempts}
       attempt=0
       while [ $attempt -lt $max_attempts ]; do
         if ${openssh}/bin/ssh \
@@ -243,6 +243,8 @@ let
     , guestModules
     , extraModules ? [ ]
     , showBootLogs ? false
+    , enableSshServer ? true
+    , sshMaxAttempts ? 15
     , launcherScript
     }:
 
@@ -267,6 +269,7 @@ let
         specialArgs = {
           inherit flake inputs;
           agentSandboxShowBootLogs = showBootLogs;
+          agentSandboxEnableSshServer = enableSshServer;
           agentSandboxShowMarkers = false;
         };
         modules = [
@@ -301,6 +304,7 @@ let
         coreutils = pkgs.coreutils;
         openssh = pkgs.openssh;
         nixpkgsLib = inputs.nixpkgs.lib;
+        inherit sshMaxAttempts;
       };
     };
 

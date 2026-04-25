@@ -5,6 +5,10 @@ let
   hostSystem = hostPkgs.stdenv.hostPlatform.system;
 
   genericLauncher = hostPkgs.lib.getExe flake.packages.${hostSystem}.mock-sandbox;
+  failingSshLauncher = hostPkgs.lib.getExe (flake.packages.${hostSystem}.mock-sandbox.override {
+    enableSshServer = false;
+    sshMaxAttempts = 1;
+  });
   opencodeLauncher = hostPkgs.lib.getExe flake.packages.${hostSystem}.opencode-sandbox;
 in
 hostPkgs.testers.runNixOSTest {
@@ -21,6 +25,7 @@ hostPkgs.testers.runNixOSTest {
     import tempfile
 
     generic_launcher = ${builtins.toJSON genericLauncher}
+    failing_ssh_launcher = ${builtins.toJSON failingSshLauncher}
     opencode_launcher = ${builtins.toJSON opencodeLauncher}
     claude_launcher = ${builtins.toJSON (hostPkgs.lib.getExe flake.packages.${hostSystem}.claude-sandbox)}
 
@@ -59,6 +64,11 @@ hostPkgs.testers.runNixOSTest {
 
     out = run_cmd([generic_launcher, "--bogus", "--", "hello"], expect_success=False)
     assert "unknown launcher flag before --" in out, f"expected unknown launcher flag failure, got: {out!r}"
+
+    out = run_cmd([failing_ssh_launcher, "--", "hello"], expect_success=False)
+    assert "SSH readiness timeout" in out, f"expected SSH timeout, got: {out!r}"
+    assert "--- VM boot log ---" in out, f"expected boot log banner on SSH failure, got: {out!r}"
+    assert "--- end boot log ---" in out, f"expected boot log footer on SSH failure, got: {out!r}"
 
     os.remove(env_file)
     os.rmdir(env_dir)

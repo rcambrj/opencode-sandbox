@@ -1,4 +1,4 @@
-{ lib, agentSandboxShowBootLogs ? false, pkgs, ... }:
+{ lib, agentSandboxEnableSshServer ? true, agentSandboxShowBootLogs ? false, pkgs, ... }:
 
 let
   consoleDevice = if pkgs.stdenv.hostPlatform.isAarch64 then "ttyAMA0" else "ttyS0";
@@ -34,10 +34,8 @@ in
 
   networking.hostName = "agent-sandbox";
 
-  networking.firewall.allowedTCPPorts = [ 22 ];
-
   services.openssh = {
-    enable = true;
+    enable = agentSandboxEnableSshServer;
     settings = {
       PermitRootLogin = "prohibit-password";
       PasswordAuthentication = false;
@@ -46,6 +44,8 @@ in
     };
     authorizedKeysFiles = [ "/mnt/agent-sandbox/control/authorized_keys" ];
   };
+
+  networking.firewall.allowedTCPPorts = lib.optionals agentSandboxEnableSshServer [ 22 ];
 
   systemd.services."serial-getty@${consoleDevice}".enable = lib.mkForce false;
 

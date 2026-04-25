@@ -1,7 +1,7 @@
-{ flake, inputs, pkgs, system, extraModules ? [ ], showBootLogs ? false, ... }:
+{ flake, inputs, pkgs, system, extraModules ? [ ], showBootLogs ? false, enableSshServer ? true, sshMaxAttempts ? 15, ... }:
 
 flake.lib.mkAgentSandbox {
-  inherit pkgs system extraModules showBootLogs;
+  inherit pkgs system extraModules showBootLogs enableSshServer sshMaxAttempts;
 
   name = "opencode-sandbox";
 
