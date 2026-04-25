@@ -9,6 +9,13 @@ flake.lib.mkAgentSandbox {
 
   launcherScript = flake.lib.mkHarnessLauncherScript {
     sessionCommand = { guestSystem, pkgs, ... }: pkgs.writeShellScriptBin "mock-wrapper" ''
+      if [ "''${1:-}" = "fail-stderr" ]; then
+        printf 'TEST_AGENT_STDERR_START\n' >&2
+        sleep 1
+        printf 'TEST_AGENT_STDERR_END\n' >&2
+        exit 42
+      fi
+
       echo "TEST_AGENT_ARGS_START"
       for arg in "$@"; do
         echo "ARG: $arg"

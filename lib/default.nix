@@ -66,8 +66,12 @@ let
           mapfile -t args < /mnt/agent-sandbox/control/agent-args
         fi
 
+        stderr_log=/mnt/agent-sandbox/control/agent-stderr.log
+        : > "$stderr_log"
+
         set +e
-        ${guestPkgs.bashInteractive}/bin/bash -c ${lib.escapeShellArg "${lib.getExe sessionCmd} \"\$@\""} bash "''${args[@]}"
+        ${guestPkgs.bashInteractive}/bin/bash -c ${lib.escapeShellArg "${lib.getExe sessionCmd} \"\$@\""} bash "''${args[@]}" \
+          2> >(${guestPkgs.coreutils}/bin/tee -a "$stderr_log" >&2)
         rc=$?
         set -e
 
@@ -232,6 +236,13 @@ let
         ${lib.escapeShellArg "${guestPkgs.bashInteractive}/bin/bash -c ${lib.escapeShellArg remoteScript}"}
       ssh_exit=$?
       set -e
+
+      if [ "$ssh_exit" -ne 0 ] && [ -s "$control_dir/agent-stderr.log" ]; then
+        echo >&2
+        echo '--- sandbox app stderr ---' >&2
+        cat "$control_dir/agent-stderr.log" >&2
+        echo '--- end sandbox app stderr ---' >&2
+      fi
 
       exit "$ssh_exit"
     '';

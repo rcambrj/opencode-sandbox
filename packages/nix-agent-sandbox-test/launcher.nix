@@ -65,6 +65,33 @@ hostPkgs.testers.runNixOSTest {
     out = run_cmd([generic_launcher, "--bogus", "--", "hello"], expect_success=False)
     assert "unknown launcher flag before --" in out, f"expected unknown launcher flag failure, got: {out!r}"
 
+    proc = subprocess.Popen(
+        [generic_launcher, "--", "fail-stderr"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        bufsize=1,
+    )
+    assert proc.stdout is not None, "expected captured stdout pipe"
+    live_output = []
+    while True:
+        line = proc.stdout.readline()
+        if not line:
+            break
+        live_output.append(line)
+        if "TEST_AGENT_STDERR_START" in line:
+            assert proc.poll() is None, "expected failing sandbox command to still be running while stderr is streaming"
+            break
+
+    assert any("TEST_AGENT_STDERR_START" in line for line in live_output), f"expected live stderr start marker, got: {live_output!r}"
+    proc.wait(timeout=300)
+    remaining_output = proc.stdout.read()
+    out = "".join(live_output) + remaining_output
+    assert "TEST_AGENT_STDERR_END" in out, f"expected live stderr end marker, got: {out!r}"
+    assert out.count("TEST_AGENT_STDERR_START") >= 2, f"expected live stderr plus failure reprint, got: {out!r}"
+    assert "--- sandbox app stderr ---" in out, f"expected sandbox app stderr failure block, got: {out!r}"
+    assert "--- end sandbox app stderr ---" in out, f"expected sandbox app stderr footer, got: {out!r}"
+
     out = run_cmd([failing_ssh_launcher, "--", "hello"], expect_success=False)
     assert "SSH readiness timeout" in out, f"expected SSH timeout, got: {out!r}"
     assert "--- VM boot log ---" in out, f"expected boot log banner on SSH failure, got: {out!r}"
