@@ -42,7 +42,7 @@ let
     , extraFlags ? { }
     , extraFinalize ? (_: "")
     }:
-    args@{ name, emptyDir, vmRunner, coreutils, openssh, nixpkgsLib, guestSystem, guestPkgs, pkgs, sshMaxAttempts, showBootLogs ? false, extraShares ? [ ], ... }:
+    args@{ name, emptyDir, vmRunner, coreutils, openssh, guestSystem, guestPkgs, pkgs, sshMaxAttempts, showBootLogs ? false, extraShares ? [ ], ... }:
     let
       sessionCmd = sessionCommand args;
       caseArmsText = renderExtraFlags extraFlags;
@@ -200,7 +200,6 @@ let
       mkdir -p "$virtiofsd_dir"
 
       virtiofsd_pids=()
-      virtiofsd_pid=""
 
       ${lib.optionalString pkgs.stdenv.hostPlatform.isLinux ''
       start_virtiofsd() {
@@ -232,10 +231,6 @@ let
       start_virtiofsd control "$control_dir"
       start_virtiofsd ro-store /nix/store 1
       ${extraShareStartText}
-      ''}
-
-      ${lib.optionalString (!pkgs.stdenv.hostPlatform.isLinux) ''
-      true
       ''}
 
       vm_runner=${lib.escapeShellArg "${toString vmRunner}/bin/microvm-run"}
@@ -274,14 +269,10 @@ let
 
       trap '
         kill "$vm_pid" 2>/dev/null || true
-        for virtiofsd_pid in "''${virtiofsd_pids[@]}"; do
-          kill "$virtiofsd_pid" 2>/dev/null || true
-        done
+        kill "''${virtiofsd_pids[@]}" 2>/dev/null || true
         ${bootLogCleanupText}
         wait "$vm_pid" 2>/dev/null || true
-        for virtiofsd_pid in "''${virtiofsd_pids[@]}"; do
-          wait "$virtiofsd_pid" 2>/dev/null || true
-        done
+        wait "''${virtiofsd_pids[@]}" 2>/dev/null || true
         rm -rf "$control_dir"
       ' EXIT INT TERM
 
@@ -443,7 +434,6 @@ let
         vmRunner = vmRunnerFixed;
         coreutils = pkgs.coreutils;
         openssh = pkgs.openssh;
-        nixpkgsLib = inputs.nixpkgs.lib;
         inherit showBootLogs;
         inherit sshMaxAttempts;
         inherit extraShares;
