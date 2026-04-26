@@ -144,7 +144,7 @@ hostPkgs.testers.runNixOSTest {
 
     out = run_cmd([opencode_launcher, f"--env-file={env_file}", f"--config-dir={config_dir}", f"--data-dir={data_dir}", f"--cache-dir={cache_dir}", "--", "models"])
     assert "Database migration complete." in out, f"expected 'Database migration complete.' in output, got: {out!r}"
-    assert "opencode/" in out, f"expected opencode model list output, got: {out!r}"
+    assert "mock/mock-model" in out, f"expected custom config model in output, got: {out!r}"
 
     assert os.path.isdir(os.path.join(data_dir, "log")), "expected XDG data log directory to be created"
     assert not glob.glob(os.path.join(data_dir, "opencode-*.db")), "expected no persistent DB files matching opencode-*.db when OPENCODE_DB=:memory:"

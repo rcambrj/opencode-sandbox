@@ -9,7 +9,7 @@ flake.lib.mkAgentSandbox {
     {
       tag = "opencode-config";
       sourceEnvVar = "AGENT_SANDBOX_CONFIG_DIR";
-      mountPoint = "/mnt/agent-sandbox/config";
+      mountPoint = "/mnt/agent-sandbox/config/opencode";
     }
     {
       tag = "opencode-data";
@@ -60,11 +60,11 @@ flake.lib.mkAgentSandbox {
           }
 
           mkdir -p \
-            /mnt/agent-sandbox/config \
+            /mnt/agent-sandbox/config/opencode \
             /mnt/agent-sandbox/data/opencode \
             /mnt/agent-sandbox/cache/opencode
 
-          mount_virtiofs opencode-config /mnt/agent-sandbox/config
+          mount_virtiofs opencode-config /mnt/agent-sandbox/config/opencode
 
           if [ -e /mnt/agent-sandbox/control/opencode-has-data-dir ]; then
             mount_virtiofs opencode-data /mnt/agent-sandbox/data/opencode
@@ -98,7 +98,7 @@ flake.lib.mkAgentSandbox {
         exit 1
       }
 
-      ensure_mount opencode-config /mnt/agent-sandbox/config
+      ensure_mount opencode-config /mnt/agent-sandbox/config/opencode
       export OPENCODE_DB=:memory:
       export XDG_CONFIG_HOME=/mnt/agent-sandbox/config
 
