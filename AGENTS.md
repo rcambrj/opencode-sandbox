@@ -34,6 +34,7 @@
 - Always run `nix build .#nix-agent-sandbox-test` unless changes are to docs only
 - Launcher tests and the NixOS module tests are in separate files
 - All tests are run by this one convenient package
+- Starting VMs is costly so test as many features as possible in each instantiation
 - For specific verification scenarios run:
   - `nix run .#opencode-sandbox -- <launcher args> -- <opencode args>`
   - `nix run .#claude-sandbox -- <launcher args> -- <claude args>`
