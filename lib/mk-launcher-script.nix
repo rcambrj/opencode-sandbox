@@ -164,9 +164,8 @@ in
   export AGENT_SANDBOX_SSH_LOG="$ssh_log"
   ${finalizeText}
 
-  export AGENT_SANDBOX_VIRTIOFSD_DIR="$control_dir/virtiofsd"
-
   virtiofsd_dir="$control_dir/virtiofsd"
+  export AGENT_SANDBOX_VIRTIOFSD_DIR="$virtiofsd_dir"
   mkdir -p "$virtiofsd_dir"
 
   virtiofsd_pids=()
