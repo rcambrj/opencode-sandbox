@@ -1,6 +1,6 @@
 { flake, inputs, pkgs, system, extraModules ? [ ], showBootLogs ? false, enableSshServer ? true, sshMaxAttempts ? 15, ... }:
 
-flake.lib.mkAgentSandbox {
+flake.lib.mkSandboxPackage {
   inherit pkgs system extraModules showBootLogs enableSshServer sshMaxAttempts;
 
   name = "opencode-sandbox";
@@ -35,7 +35,7 @@ flake.lib.mkAgentSandbox {
     }
   ];
 
-  launcherScript = flake.lib.mkHarnessLauncherScript {
+  launcherScript = flake.lib.mkLauncherScript {
     sessionCommand = { guestSystem, pkgs, ... }: pkgs.writeShellScriptBin "opencode-wrapper" ''
       export OPENCODE_DB=:memory:
       export XDG_CONFIG_HOME=/mnt/agent-sandbox/config

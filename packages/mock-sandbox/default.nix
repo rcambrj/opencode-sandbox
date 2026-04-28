@@ -1,13 +1,13 @@
 { flake, inputs, pkgs, system, extraModules ? [ ], showBootLogs ? false, enableSshServer ? true, sshMaxAttempts ? 15, ... }:
 
-flake.lib.mkAgentSandbox {
+flake.lib.mkSandboxPackage {
   inherit pkgs system extraModules showBootLogs enableSshServer sshMaxAttempts;
 
   name = "mock-sandbox";
 
   guestModules = [ ];
 
-  launcherScript = flake.lib.mkHarnessLauncherScript {
+  launcherScript = flake.lib.mkLauncherScript {
     sessionCommand = { guestSystem, pkgs, ... }: pkgs.writeShellScriptBin "mock-wrapper" ''
       if [ "''${1:-}" = "fail-stderr" ]; then
         printf 'TEST_AGENT_STDERR_START\n' >&2

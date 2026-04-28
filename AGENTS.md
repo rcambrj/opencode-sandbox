@@ -2,16 +2,16 @@
 
 ## Scope
 - `numtide/blueprint` layout.
-- Core sandbox logic in `lib/` (`mkAgentSandbox`, `mkWrappedExec`, `guest-vm.nix`)
+- Core sandbox logic in `lib/` (`mkSandboxPackage`, `mkLauncherScript`, `mkWrappedExec`, `guest-vm.nix`)
 - Harness packages in `packages/<harness>-sandbox/` (e.g., `opencode-sandbox`, `claude-sandbox`, `mock-sandbox`)
 - NixOS modules in `modules/nixos/<harness>-sandbox.nix`
 - Shared wrapper helpers in `lib/default.nix`
 
 ## Architecture
-- `lib/mkAgentSandbox` — harness-agnostic function that builds a NixOS VM and wraps it in a `writeShellApplication`. Each harness provides its own `guestModules` and `launcherScript`.
+- `lib/mkSandboxPackage` — harness-agnostic function that builds a NixOS VM and wraps it in a `writeShellApplication`. Each harness provides its own `guestModules` and `launcherScript`.
 - `lib/mkWrappedExec` — generic wrapper that takes a `flags` attrset and produces a shell script that forwards flag arguments to the sandbox package.
 - `lib/guest-vm.nix` — base guest NixOS module (VM settings, SSH, workspace+control mounts, boot config). Harness-specific mounts and session setup live in each harness's `guestModules`.
-- Each harness package (`packages/<harness>-sandbox/`) calls `mkAgentSandbox` with:
+- Each harness package (`packages/<harness>-sandbox/`) calls `mkSandboxPackage` with:
   - `name` — executable name (e.g., `"opencode-sandbox"`)
   - `guestModules` — list of NixOS modules for the guest (session setup, agent-specific mounts)
   - `launcherScript` — function returning the host-side launcher script text

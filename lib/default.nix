@@ -13,11 +13,11 @@ let
     inherit lib;
   };
 
-  mkHarnessLauncherScript = import ./mk-harness-launcher-script.nix {
+  mkLauncherScript = import ./mk-launcher-script.nix {
     inherit lib renderExtraFlags;
   };
 
-  mkAgentSandbox = import ./mk-agent-sandbox.nix {
+  mkSandboxPackage = import ./mk-sandbox-package.nix {
     inherit flake inputs normalizeExtraModules;
   };
 
@@ -26,5 +26,5 @@ let
   };
 in
 {
-  inherit optionalFlag mkAgentSandbox mkHarnessLauncherScript mkWrappedExec;
+  inherit optionalFlag mkSandboxPackage mkLauncherScript mkWrappedExec;
 }

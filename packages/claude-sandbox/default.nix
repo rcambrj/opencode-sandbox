@@ -1,6 +1,6 @@
 { flake, inputs, pkgs, system, extraModules ? [ ], showBootLogs ? false, enableSshServer ? true, sshMaxAttempts ? 15, ... }:
 
-flake.lib.mkAgentSandbox {
+flake.lib.mkSandboxPackage {
   inherit pkgs system extraModules showBootLogs enableSshServer sshMaxAttempts;
 
   name = "claude-sandbox";
@@ -21,7 +21,7 @@ flake.lib.mkAgentSandbox {
     }
   ];
 
-  launcherScript = flake.lib.mkHarnessLauncherScript {
+  launcherScript = flake.lib.mkLauncherScript {
     sessionCommand = { guestSystem, ... }: pkgs.writeShellScriptBin "claude-wrapper" ''
       export CLAUDE_CONFIG_DIR=/mnt/agent-sandbox/config/claude
 
