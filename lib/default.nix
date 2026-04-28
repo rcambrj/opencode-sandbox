@@ -21,10 +21,10 @@ let
     inherit flake inputs normalizeExtraModules;
   };
 
-  mkWrappedAgentSandbox = import ./mk-wrapped-agent-sandbox.nix {
+  mkWrappedExec = import ./mk-wrapped-exec.nix {
     inherit lib optionalFlag;
   };
 in
 {
-  inherit optionalFlag mkAgentSandbox mkHarnessLauncherScript mkWrappedAgentSandbox;
+  inherit optionalFlag mkAgentSandbox mkHarnessLauncherScript mkWrappedExec;
 }

@@ -1,7 +1,7 @@
 { flake, pkgs }:
 pkgs.mkShell {
   packages = [
-    (flake.lib.mkWrappedAgentSandbox {
+    (flake.lib.mkWrappedExec {
       inherit pkgs;
       name = "opencode-sandbox-dev";
       package = flake.packages.${pkgs.stdenv.hostPlatform.system}.opencode-sandbox.override {
@@ -30,7 +30,7 @@ pkgs.mkShell {
       };
     })
 
-    (flake.lib.mkWrappedAgentSandbox {
+    (flake.lib.mkWrappedExec {
       inherit pkgs;
       name = "claude-sandbox-dev";
       package = flake.packages.${pkgs.stdenv.hostPlatform.system}.claude-sandbox.override {

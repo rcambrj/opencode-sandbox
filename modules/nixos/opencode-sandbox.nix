@@ -85,7 +85,7 @@ in
 
   config = lib.mkIf cfg.enable {
     environment.systemPackages = [
-      (flake.lib.mkWrappedAgentSandbox {
+      (flake.lib.mkWrappedExec {
         inherit pkgs;
         name = "opencode-sandbox";
         package = if cfg.package != null then cfg.package else pkg.override {
