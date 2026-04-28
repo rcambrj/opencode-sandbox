@@ -1,11 +1,11 @@
 { }:
-guestPkgs: modules:
+args: modules:
 builtins.map (entry:
   if builtins.isAttrs entry then
     entry
   else if builtins.isFunction entry then
     let
-      result = entry guestPkgs;
+      result = entry args;
     in
     if builtins.isAttrs result then
       result

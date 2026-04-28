@@ -19,7 +19,8 @@ in
 
         Each entry can be:
         - An attrset (a plain NixOS module): `{ ... }`
-        - A function that receives the guest system's pkgs and returns an attrset: `pkgs: { ... }`
+        - A function that receives sandbox arguments and returns an attrset: `args: { ... }`
+          (for example: `({ guestPkgs, ... }: { ... })`)
       '';
     };
 

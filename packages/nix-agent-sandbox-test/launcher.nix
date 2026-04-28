@@ -14,6 +14,13 @@ let
     sshMaxAttempts = 1;
     showBootLogs = true;
   });
+  extraModulesAttrsetLauncher = hostPkgs.lib.getExe (flake.packages.${hostSystem}.mock-sandbox.override {
+    extraModules = [
+      ({ guestPkgs, ... }: {
+        environment.systemPackages = [ guestPkgs.hello ];
+      })
+    ];
+  });
   opencodeLauncher = hostPkgs.lib.getExe flake.packages.${hostSystem}.opencode-sandbox;
 in
 hostPkgs.testers.runNixOSTest {
@@ -32,6 +39,7 @@ hostPkgs.testers.runNixOSTest {
     generic_launcher = ${builtins.toJSON genericLauncher}
     failing_ssh_launcher = ${builtins.toJSON failingSshLauncher}
     boot_logs_launcher = ${builtins.toJSON bootLogsLauncher}
+    extra_modules_attrset_launcher = ${builtins.toJSON extraModulesAttrsetLauncher}
     opencode_launcher = ${builtins.toJSON opencodeLauncher}
     claude_launcher = ${builtins.toJSON (hostPkgs.lib.getExe flake.packages.${hostSystem}.claude-sandbox)}
 
@@ -107,6 +115,10 @@ hostPkgs.testers.runNixOSTest {
     out = run_cmd([boot_logs_launcher, "--", "hello"], expect_success=False)
     assert "SSH readiness timeout" in out, f"expected SSH timeout, got: {out!r}"
     assert "--- VM boot log ---" not in out, f"expected streamed boot logs to suppress boot log banner, got: {out!r}"
+
+    out = run_cmd([extra_modules_attrset_launcher, "--", "hello", "world"])
+    assert "TEST_AGENT_ARGS_START" in out, f"expected args start marker with attrset extraModules, got: {out!r}"
+    assert "ARG: hello" in out, f"expected forwarded args with attrset extraModules, got: {out!r}"
 
     os.remove(env_file)
     os.rmdir(env_dir)

@@ -89,8 +89,8 @@ Add this repository to your flake inputs:
       {
         networking.firewall.allowedTCPPorts = [ 4096 ];
       }
-      (pkgs: {
-        environment.systemPackages = [ pkgs.hello ];
+      ({ guestPkgs, ... }: {
+        environment.systemPackages = [ guestPkgs.hello ];
       })
     ];
   };

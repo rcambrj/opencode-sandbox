@@ -27,6 +27,11 @@ let
     system = guestSystem;
   };
 
+  moduleArgs = {
+    inherit flake inputs pkgs system name guestPkgs guestSystem emptyDir;
+    inherit extraShares showBootLogs enableSshServer sshMaxAttempts;
+  };
+
   vmSystem = inputs.nixpkgs.lib.nixosSystem {
     system = guestSystem;
     specialArgs = {
@@ -43,8 +48,8 @@ let
         nixpkgs.hostPlatform = guestSystem;
         microvm.vmHostPackages = hostPkgs;
       }
-    ] ++ normalizeExtraModules guestPkgs guestModules
-      ++ normalizeExtraModules guestPkgs extraModules;
+    ] ++ normalizeExtraModules moduleArgs guestModules
+      ++ normalizeExtraModules moduleArgs extraModules;
   };
 
   vmRunner = vmSystem.config.microvm.declaredRunner;
