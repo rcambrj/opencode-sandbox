@@ -27,6 +27,7 @@ flake.lib.mkSandboxPackage {
 
   guestModules = [
     {
+      microvm.mem = pkgs.lib.mkDefault 1024;
       systemd.tmpfiles.rules = [
         "d /mnt/agent-sandbox/config 0755 root root -"
         "d /mnt/agent-sandbox/data 0755 root root -"

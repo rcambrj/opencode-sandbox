@@ -24,7 +24,7 @@ let
         " (map lib.escapeShellArg allMountDirs);
 
   darwinDeviceArgs = [
-    "--device \"virtio-net,nat,mac=02:00:00:01:01:01\""
+    "--device \"virtio-net,nat,mac=00:00:00:00:00:01\""
     "--device \"virtio-fs,sharedDir=$AGENT_SANDBOX_WORKSPACE_DIR,mountTag=workspace\""
     "--device \"virtio-fs,sharedDir=$AGENT_SANDBOX_CONTROL_DIR,mountTag=control\""
   ] ++ map (share:
@@ -38,8 +38,6 @@ let
   ) agentSandboxExtraShares;
 
   linuxDeviceArgs = [
-    "-object \"memory-backend-memfd,id=mem,size=4096M,share=on\""
-    "-numa \"node,memdev=mem\""
     "-netdev \"user,id=qemu,hostfwd=tcp:127.0.0.1:$AGENT_SANDBOX_SSH_PORT-:22\""
     "-device \"virtio-net-pci,netdev=qemu,mac=02:00:00:01:01:01\""
     "-chardev \"socket,id=workspace,path=$AGENT_SANDBOX_VIRTIOFSD_DIR/workspace.sock\""
@@ -56,9 +54,6 @@ in
 {
   microvm = {
     hypervisor = if isDarwinHost then "vfkit" else "qemu";
-    mem = 4096;
-    vcpu = 4;
-    graphics.enable = false;
     storeOnDisk = false;
     virtiofsd.package = if isDarwinHost then pkgs.writeShellScriptBin "virtiofsd" ''
       exit 1
