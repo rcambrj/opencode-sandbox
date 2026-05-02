@@ -246,7 +246,9 @@ args@{ name, emptyDir, vmRunner, coreutils, openssh, guestSystem, guestPkgs, pkg
 
   ${lib.optionalString pkgs.stdenv.hostPlatform.isDarwin ''
     guest_ip=""
-    for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+    max_attempts=20
+    attempt=0
+    while [ $attempt -lt $max_attempts ]; do
       if [ -s "$control_dir/guest-ip" ]; then
         guest_ip="$(${coreutils}/bin/tr -d '[:space:]' < "$control_dir/guest-ip")"
         break
@@ -256,6 +258,7 @@ args@{ name, emptyDir, vmRunner, coreutils, openssh, guestSystem, guestPkgs, pkg
         fail_vm_startup '${name}: VM exited before guest IP was written'
       fi
 
+      attempt=$((attempt + 1))
       sleep 1
     done
 
