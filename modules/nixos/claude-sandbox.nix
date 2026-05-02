@@ -8,33 +8,15 @@ let
   pkg = pkgsFor.claude-sandbox;
 in
 {
-  options.programs."claude-sandbox" = {
-    enable = lib.mkEnableOption "the claude sandbox launcher";
-
-    extraModules = lib.mkOption {
-      type = lib.types.listOf (lib.types.either lib.types.attrs lib.types.unspecified);
-      default = [ ];
-      description = ''
-        Additional guest NixOS modules to include in the claude sandbox VM.
-
-        Each entry can be:
-        - An attrset (a plain NixOS module): `{ ... }`
-        - A function that receives sandbox arguments and returns an attrset: `args: { ... }`
-          (for example: `({ guestPkgs, ... }: { ... })`)
+  options.programs."claude-sandbox" =
+    flake.lib.mkSandboxModuleOptions {
+      enableDescription = "the claude sandbox launcher";
+      packageDescription = ''
+        Custom claude-sandbox package to use. When null, uses the flake's built package
+        with extraModules and showBootLogs applied. When set, this package is used as-is.
       '';
-    };
-
-    showBootLogs = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Show guest kernel and systemd boot logs on the sandbox console.";
-    };
-
-    envFile = lib.mkOption {
-      type = lib.types.nullOr lib.types.path;
-      default = null;
-      description = "Path to an env file sourced inside the sandbox VM before claude starts.";
-    };
+    }
+    // {
 
     configDir = lib.mkOption {
       type = lib.types.nullOr lib.types.path;
@@ -45,23 +27,6 @@ in
       '';
     };
 
-    exposeHostPorts = lib.mkOption {
-      type = lib.types.listOf lib.types.int;
-      default = [ ];
-      description = ''
-        Host TCP ports exposed into the guest on the same port numbers.
-        Guest connections to 127.0.0.1:<port> are forwarded to host 127.0.0.1:<port>.
-      '';
-    };
-
-    package = lib.mkOption {
-      type = lib.types.nullOr lib.types.package;
-      default = null;
-      description = ''
-        Custom claude-sandbox package to use. When null, uses the flake's built package
-        with extraModules and showBootLogs applied. When set, this package is used as-is.
-      '';
-    };
   };
 
   config = lib.mkIf cfg.enable {

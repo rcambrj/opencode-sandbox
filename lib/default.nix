@@ -18,6 +18,11 @@ let
     inherit lib optionalFlag;
   };
 
+  # Build reusable NixOS module options for sandbox launchers.
+  mkSandboxModuleOptions = import ./mk-sandbox-module-options.nix {
+    inherit lib;
+  };
+
   # Internal helpers
   normalizeExtraModules = import ./normalize-extra-modules.nix { };
   renderExtraFlags = import ./render-extra-flags.nix {
@@ -28,5 +33,5 @@ let
   };
 in
 {
-  inherit optionalFlag mkSandboxPackage mkLauncherScript mkWrappedExec;
+  inherit optionalFlag mkSandboxPackage mkLauncherScript mkWrappedExec mkSandboxModuleOptions;
 }
