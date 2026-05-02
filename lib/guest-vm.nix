@@ -150,16 +150,12 @@ in
     wants = [ "network-online.target" ];
     serviceConfig.Type = "oneshot";
     script = ''
-      ip=""
-      for _ in 1 2 3 4 5 6 7 8 9 10; do
-        ip="$(${pkgs.iproute2}/bin/ip -4 -o addr show scope global | ${pkgs.gawk}/bin/awk '{ split($4, a, "/"); print a[1]; exit }')"
-        if [ -n "$ip" ]; then
-          printf '%s\n' "$ip" > /mnt/agent-sandbox/control/guest-ip
-          exit 0
-        fi
-        sleep 1
-      done
-      exit 0
+      ip="$(${pkgs.iproute2}/bin/ip -4 -o addr show scope global | ${pkgs.gawk}/bin/awk '{ split($4, a, "/"); print a[1]; exit }')"
+      if [ -n "$ip" ]; then
+        printf '%s\n' "$ip" > /mnt/agent-sandbox/control/guest-ip
+        exit 0
+      fi
+      exit 1
     '';
   };
   boot.loader.grub.enable = false;
