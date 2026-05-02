@@ -197,6 +197,27 @@ args@{ name, emptyDir, vmRunner, coreutils, openssh, guestSystem, guestPkgs, pkg
   ''}
 
   #####################################
+  # NIC MAC Address
+  #####################################
+
+  read -r mac_b0 mac_b1 mac_b2 mac_b3 mac_b4 mac_b5 _extra <<< "$(${coreutils}/bin/od -An -N6 -tu1 /dev/urandom)"
+  if [ -n "''${_extra:-}" ] || [ -z "''${mac_b5:-}" ]; then
+    printf '${name}: failed to generate random VM MAC bytes\n' >&2
+    exit 1
+  fi
+
+  # Use 6 random bytes and force the first byte to be a locally administered
+  # unicast address (clear multicast bit0, set local bit1).
+  mac_byte0=$(( (mac_b0 | 2) & 254 ))
+  mac_address="$(printf '%02x:%02x:%02x:%02x:%02x:%02x' \
+    "$mac_byte0" \
+    "$((mac_b1))" \
+    "$((mac_b2))" \
+    "$((mac_b3))" \
+    "$((mac_b4))" \
+    "$((mac_b5))")"
+
+  #####################################
   # VM runner env, start & shutdown trap
   #####################################
 
@@ -205,6 +226,7 @@ args@{ name, emptyDir, vmRunner, coreutils, openssh, guestSystem, guestPkgs, pkg
   export AGENT_SANDBOX_CONTROL_DIR="$control_dir"
   export AGENT_SANDBOX_SSH_LOG="$ssh_log"
   export AGENT_SANDBOX_VIRTIOFSD_DIR="''${virtiofsd_dir:-}"
+  export AGENT_SANDBOX_VM_MAC="$mac_address"
   ${extraFinalize args}
   ${toString vmRunner}/bin/microvm-run >> "$ssh_log" 2>&1 &
   vm_pid=$!

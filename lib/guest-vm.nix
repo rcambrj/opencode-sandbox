@@ -24,7 +24,7 @@ let
         " (map lib.escapeShellArg allMountDirs);
 
   darwinDeviceArgs = [
-    "--device \"virtio-net,nat,mac=00:00:00:00:00:01\""
+    "--device \"virtio-net,nat,mac=$AGENT_SANDBOX_VM_MAC\""
     "--device \"virtio-fs,sharedDir=$AGENT_SANDBOX_WORKSPACE_DIR,mountTag=workspace\""
     "--device \"virtio-fs,sharedDir=$AGENT_SANDBOX_CONTROL_DIR,mountTag=control\""
   ] ++ map (share:
@@ -39,7 +39,7 @@ let
 
   linuxDeviceArgs = [
     "-netdev \"user,id=qemu,hostfwd=tcp:127.0.0.1:$AGENT_SANDBOX_SSH_PORT-:22\""
-    "-device \"virtio-net-pci,netdev=qemu,mac=02:00:00:01:01:01\""
+    "-device \"virtio-net-pci,netdev=qemu,mac=$AGENT_SANDBOX_VM_MAC\""
     "-chardev \"socket,id=workspace,path=$AGENT_SANDBOX_VIRTIOFSD_DIR/workspace.sock\""
     "-device \"vhost-user-fs-pci,chardev=workspace,tag=workspace\""
     "-chardev \"socket,id=control,path=$AGENT_SANDBOX_VIRTIOFSD_DIR/control.sock\""

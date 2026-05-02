@@ -60,6 +60,8 @@ let
     ${pkgs.coreutils}/bin/chmod -R u+w "$out"
     ${pkgs.gnused}/bin/sed -i 's|\x27 ''${runtime_args:-}|\x27 bash ''${runtime_args:-}|' "$out/bin/microvm-run"
     ${pkgs.gnused}/bin/sed -i 's|--device virtio-serial,stdio|--device virtio-serial,logFilePath=$AGENT_SANDBOX_SSH_LOG|' "$out/bin/microvm-run"
+    ${pkgs.gnused}/bin/sed -i 's|rm -f agent-sandbox.sock|rm -f "$AGENT_SANDBOX_CONTROL_DIR/microvm.sock"|' "$out/bin/microvm-run"
+    ${pkgs.gnused}/bin/sed -i 's|SOCKET_ABS=agent-sandbox.sock|SOCKET_ABS="$AGENT_SANDBOX_CONTROL_DIR/microvm.sock"|' "$out/bin/microvm-run"
     ${pkgs.gnused}/bin/sed -i 's|--restful-uri "unix:///$SOCKET_ABS"|--restful-uri "unix:///$SOCKET_ABS" "$@"|' "$out/bin/microvm-run"
   '';
 in

@@ -188,6 +188,32 @@ hostPkgs.testers.runNixOSTest {
     assert "TEST_AGENT_ARGS_START" in out, f"expected args start marker with attrset extraModules, got: {out!r}"
     assert "ARG: hello" in out, f"expected forwarded args with attrset extraModules, got: {out!r}"
 
+    concurrent_results = []
+
+    def _run_generic_concurrent(instance_id):
+        result = subprocess.run(
+            [generic_launcher, "--", "hello", f"instance-{instance_id}"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            timeout=300,
+        )
+        concurrent_results.append((instance_id, result.returncode, result.stdout))
+
+    t1 = threading.Thread(target=_run_generic_concurrent, args=(1,))
+    t2 = threading.Thread(target=_run_generic_concurrent, args=(2,))
+    t1.start()
+    t2.start()
+    t1.join(timeout=330)
+    t2.join(timeout=330)
+
+    assert len(concurrent_results) == 2, f"expected two concurrent launcher results, got: {concurrent_results!r}"
+    for instance_id, rc, out in concurrent_results:
+        assert rc == 0, f"expected concurrent launcher #{instance_id} to succeed, got rc={rc}, output: {out!r}"
+        assert "mock-sandbox: SSH ready, connecting..." in out, f"expected SSH-ready marker for concurrent launcher #{instance_id}, got: {out!r}"
+        assert "ARG: hello" in out, f"expected forwarded args for concurrent launcher #{instance_id}, got: {out!r}"
+        assert f"ARG: instance-{instance_id}" in out, f"expected per-instance arg for concurrent launcher #{instance_id}, got: {out!r}"
+
     os.remove(env_file)
     os.rmdir(env_dir)
 
