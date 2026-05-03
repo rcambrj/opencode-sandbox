@@ -41,7 +41,7 @@ flake.lib.mkSandboxPackage {
       export OPENCODE_DB=:memory:
 
       if [ -r /mnt/agent-sandbox/control/opencode-use-exclusive-sqlite-lock ]; then
-        export OPENCODE_DB='file:/mnt/agent-sandbox/data/opencode.db?vfs=unix-excl'
+        export OPENCODE_DB='/mnt/agent-sandbox/data/opencode.db'
       fi
 
       export XDG_CONFIG_HOME=/mnt/agent-sandbox/config
@@ -123,7 +123,7 @@ flake.lib.mkSandboxPackage {
           if [ -e "$opencode_lockfile" ]; then
             printf '${name}: detected leftover lockfile: %s\n' "$opencode_lockfile" >&2
             while true; do
-              printf '${name}: adopt lockfile (a), abort (n), continue with :memory: (y)? [a/n/y] ' >&2
+              printf '${name}: continue with :memory: (y), abort (n), adopt lockfile (a)? [a/n/y] ' >&2
               if ! IFS= read -r lock_choice; then
                 printf '\n${name}: no response received; aborting\n' >&2
                 exit 1

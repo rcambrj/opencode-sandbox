@@ -155,8 +155,8 @@ claude-sandbox -- --help
 > cannot.
 >
 > This option is enabled by default, as long as `dataDir` is set. It configures
-> `opencode` with `OPENCODE_DB=file:$dataDir/opencode.db?vfs=unix-excl`, creates
-> `.opencode-sandbox.lock`, and removes that lock on normal shutdown.
+> `opencode` with `OPENCODE_DB=$dataDir/opencode.db`, creates
+> `$dataDir/.opencode-sandbox.lock`, and removes that lock on normal shutdown.
 >
 > If a leftover lockfile is found at startup, the launcher prompts for:
 > continue with `:memory:` (`y`), abort (`n`), or adopt lockfile (`a`).

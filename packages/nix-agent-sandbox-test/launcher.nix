@@ -248,6 +248,11 @@ hostPkgs.testers.runNixOSTest {
     data_dir = tempfile.mkdtemp(prefix="opencode-sandbox-test-data-")
     cache_dir = tempfile.mkdtemp(prefix="opencode-sandbox-test-cache-")
 
+    exclusive_lock_data_dir = tempfile.mkdtemp(prefix="opencode-sandbox-test-data-help-")
+    out = run_cmd([opencode_launcher, f"--data-dir={exclusive_lock_data_dir}", "--exclusive-sqlite-lock=true", "--", "--help"])
+    assert "Usage" in out or "usage" in out, f"expected opencode help output with exclusive sqlite lock enabled, got: {out!r}"
+    assert not os.path.exists(os.path.join(exclusive_lock_data_dir, ".opencode-sandbox.lock")), "expected lockfile cleanup after successful exclusive sqlite run"
+
     out = run_cmd([opencode_launcher, f"--env-file={env_file}", f"--config-dir={config_dir}", f"--data-dir={data_dir}", f"--cache-dir={cache_dir}", "--exclusive-sqlite-lock=false", "--", "models"])
     assert "Database migration complete." in out, f"expected 'Database migration complete.' in output, got: {out!r}"
     assert "mock/mock-model" in out, f"expected custom config model in output, got: {out!r}"
@@ -282,13 +287,15 @@ hostPkgs.testers.runNixOSTest {
     stale_a_data_dir = tempfile.mkdtemp(prefix="opencode-sandbox-test-data-stale-a-")
     with open(os.path.join(stale_a_data_dir, ".opencode-sandbox.lock"), "w") as f:
         f.write("stale\n")
-    out = run_cmd([opencode_launcher, f"--env-file={env_file}", f"--config-dir={config_dir}", f"--data-dir={stale_a_data_dir}", f"--cache-dir={cache_dir}", "--", "--help"], expect_success=False, input_text="a\n")
+    out = run_cmd([opencode_launcher, f"--env-file={env_file}", f"--config-dir={config_dir}", f"--data-dir={stale_a_data_dir}", f"--cache-dir={cache_dir}", "--", "--help"], input_text="a\n")
     assert "adopt lockfile" in out, f"expected stale-lock prompt for adopt path, got: {out!r}"
+    assert "Usage" in out or "usage" in out, f"expected opencode help output when adopting stale lockfile, got: {out!r}"
     assert not os.path.exists(os.path.join(stale_a_data_dir, ".opencode-sandbox.lock")), "expected adopted lockfile to be cleaned up after run"
 
     os.remove(env_file)
     os.rmdir(env_dir)
     shutil.rmtree(data_dir)
+    shutil.rmtree(exclusive_lock_data_dir)
     shutil.rmtree(memory_data_dir)
     shutil.rmtree(stale_y_data_dir)
     shutil.rmtree(stale_n_data_dir)
