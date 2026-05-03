@@ -6,6 +6,27 @@ let
 
   pkgsFor = flake.mkPackagesFor pkgs;
   pkg = pkgsFor.claude-sandbox;
+
+  moduleAssertions = flake.lib.mkSandboxModuleAssertions {
+    optionPrefix = "programs.claude-sandbox";
+    package = cfg.package;
+    ignoredWhenPackageSet = {
+      extraModules = {
+        value = cfg.extraModules;
+        default = [ ];
+      };
+      showBootLogs = {
+        value = cfg.showBootLogs;
+        default = false;
+      };
+    };
+    extraAssertions = [
+      {
+        assertion = cfg.configDir != null;
+        message = "programs.claude-sandbox.configDir must be set to a writable host directory";
+      }
+    ];
+  };
 in
 {
   options.programs."claude-sandbox" =
@@ -30,12 +51,8 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    assertions = [
-      {
-        assertion = cfg.configDir != null;
-        message = "programs.claude-sandbox.configDir must be set to a writable host directory";
-      }
-    ];
+    warnings = moduleAssertions.warnings;
+    assertions = moduleAssertions.assertions;
 
     environment.systemPackages = [
       (flake.lib.mkWrappedExec {

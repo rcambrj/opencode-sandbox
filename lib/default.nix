@@ -23,6 +23,11 @@ let
     inherit lib;
   };
 
+  # Build reusable warnings/assertions for sandbox modules.
+  mkSandboxModuleAssertions = import ./mk-sandbox-module-assertions.nix {
+    inherit lib;
+  };
+
   # Internal helpers
   normalizeExtraModules = import ./normalize-extra-modules.nix { };
   renderExtraFlags = import ./render-extra-flags.nix {
@@ -33,5 +38,5 @@ let
   };
 in
 {
-  inherit optionalFlag mkSandboxPackage mkLauncherScript mkWrappedExec mkSandboxModuleOptions;
+  inherit optionalFlag mkSandboxPackage mkLauncherScript mkWrappedExec mkSandboxModuleOptions mkSandboxModuleAssertions;
 }

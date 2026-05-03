@@ -6,6 +6,21 @@ let
 
   pkgsFor = flake.mkPackagesFor pkgs;
   pkg = pkgsFor.opencode-sandbox;
+
+  moduleAssertions = flake.lib.mkSandboxModuleAssertions {
+    optionPrefix = "programs.opencode-sandbox";
+    package = cfg.package;
+    ignoredWhenPackageSet = {
+      extraModules = {
+        value = cfg.extraModules;
+        default = [ ];
+      };
+      showBootLogs = {
+        value = cfg.showBootLogs;
+        default = false;
+      };
+    };
+  };
 in
 {
   options.programs."opencode-sandbox" =
@@ -57,6 +72,8 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    warnings = moduleAssertions.warnings;
+
     environment.systemPackages = [
       (flake.lib.mkWrappedExec {
         inherit pkgs;

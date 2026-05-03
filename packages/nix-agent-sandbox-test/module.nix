@@ -70,6 +70,64 @@ hostPkgs.testers.runNixOSTest {
     };
   };
 
+  nodes.machineWarningsOpencode = { config, ... }: {
+    imports = [
+      flake.nixosModules.opencode-sandbox
+    ];
+
+    programs.opencode-sandbox = {
+      enable = true;
+      package = mockOpencodePackage;
+      configDir = pkgs.writeTextDir "opencode.json" (builtins.toJSON {
+        "$schema" = "https://opencode.ai/config.json";
+      });
+      extraModules = [
+        ({ ... }: { })
+      ];
+      showBootLogs = true;
+    };
+
+    assertions = [
+      {
+        assertion = builtins.any (w: w == "programs.opencode-sandbox.extraModules is ignored when programs.opencode-sandbox.package is set.") config.warnings;
+        message = "expected warning for ignored programs.opencode-sandbox.extraModules with package override";
+      }
+      {
+        assertion = builtins.any (w: w == "programs.opencode-sandbox.showBootLogs is ignored when programs.opencode-sandbox.package is set.") config.warnings;
+        message = "expected warning for ignored programs.opencode-sandbox.showBootLogs with package override";
+      }
+    ];
+  };
+
+  nodes.machineWarningsClaude = { config, ... }: {
+    imports = [
+      flake.nixosModules.claude-sandbox
+    ];
+
+    programs.claude-sandbox = {
+      enable = true;
+      package = mockClaudePackage;
+      configDir = pkgs.writeTextDir "settings.json" (builtins.toJSON {
+        permissions = { allow = ["*"]; };
+      });
+      extraModules = [
+        ({ ... }: { })
+      ];
+      showBootLogs = true;
+    };
+
+    assertions = [
+      {
+        assertion = builtins.any (w: w == "programs.claude-sandbox.extraModules is ignored when programs.claude-sandbox.package is set.") config.warnings;
+        message = "expected warning for ignored programs.claude-sandbox.extraModules with package override";
+      }
+      {
+        assertion = builtins.any (w: w == "programs.claude-sandbox.showBootLogs is ignored when programs.claude-sandbox.package is set.") config.warnings;
+        message = "expected warning for ignored programs.claude-sandbox.showBootLogs with package override";
+      }
+    ];
+  };
+
   testScript = ''
     def parse_args(output):
         lines = output.strip().split("\n")
@@ -119,5 +177,10 @@ hostPkgs.testers.runNixOSTest {
     assert "settings.json" in str(args), f"expected config dir to contain settings.json, got: {args!r}"
     assert any(arg.startswith("--env-file=") for arg in args), f"expected --env-file= when configured, got: {args!r}"
     assert "--expose-host-ports=9000" in args, f"expected --expose-host-ports from module config, got: {args!r}"
+
+    # --- Warning checks for ignored options with package override ---
+
+    machineWarningsOpencode.wait_for_unit("multi-user.target")
+    machineWarningsClaude.wait_for_unit("multi-user.target")
   '';
 }
