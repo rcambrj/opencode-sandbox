@@ -155,7 +155,7 @@ claude-sandbox -- --help
 > cannot.
 >
 > This option is enabled by default, as long as `dataDir` is set. It configures
-> `opencode` with `OPENCODE_DB=$dataDir/opencode.db`, creates
+> `opencode` to use its default on-disk database location under `XDG_DATA_HOME`, creates
 > `$dataDir/.opencode-sandbox.lock`, and removes that lock on normal shutdown.
 >
 > If a leftover lockfile is found at startup, the launcher prompts for:

@@ -41,7 +41,7 @@ flake.lib.mkSandboxPackage {
       export OPENCODE_DB=:memory:
 
       if [ -r /mnt/agent-sandbox/control/opencode-use-exclusive-sqlite-lock ]; then
-        export OPENCODE_DB='/mnt/agent-sandbox/data/opencode.db'
+        unset OPENCODE_DB
       fi
 
       export XDG_CONFIG_HOME=/mnt/agent-sandbox/config

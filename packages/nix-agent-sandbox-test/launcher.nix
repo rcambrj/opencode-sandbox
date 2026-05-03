@@ -62,6 +62,14 @@ hostPkgs.testers.runNixOSTest {
             raise Exception(f"expected failure, got success: {result.stdout}")
         return result.stdout
 
+    def find_opencode_db_files(base_dir):
+        matches = []
+        for root, _, files in os.walk(base_dir):
+            for name in files:
+                if name == "opencode.db" or (name.startswith("opencode-") and name.endswith(".db")):
+                    matches.append(os.path.join(root, name))
+        return matches
+
     @contextlib.contextmanager
     def host_listener_once(port=0):
         server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -253,6 +261,13 @@ hostPkgs.testers.runNixOSTest {
     assert "Usage" in out or "usage" in out, f"expected opencode help output with exclusive sqlite lock enabled, got: {out!r}"
     assert not os.path.exists(os.path.join(exclusive_lock_data_dir, ".opencode-sandbox.lock")), "expected lockfile cleanup after successful exclusive sqlite run"
 
+    exclusive_models_data_dir = tempfile.mkdtemp(prefix="opencode-sandbox-test-data-exclusive-models-")
+    out = run_cmd([opencode_launcher, f"--env-file={env_file}", f"--config-dir={config_dir}", f"--data-dir={exclusive_models_data_dir}", f"--cache-dir={cache_dir}", "--exclusive-sqlite-lock=true", "--", "models"])
+    assert "Database migration complete." in out, f"expected migration output when exclusive sqlite lock is enabled, got: {out!r}"
+    assert "mock/mock-model" in out, f"expected model output when exclusive sqlite lock is enabled, got: {out!r}"
+    assert find_opencode_db_files(exclusive_models_data_dir), f"expected sqlite database file under exclusive data dir, got none in: {exclusive_models_data_dir!r}"
+    assert not os.path.exists(os.path.join(exclusive_models_data_dir, ".opencode-sandbox.lock")), "expected lockfile cleanup after successful exclusive sqlite models run"
+
     out = run_cmd([opencode_launcher, f"--env-file={env_file}", f"--config-dir={config_dir}", f"--data-dir={data_dir}", f"--cache-dir={cache_dir}", "--exclusive-sqlite-lock=false", "--", "models"])
     assert "Database migration complete." in out, f"expected 'Database migration complete.' in output, got: {out!r}"
     assert "mock/mock-model" in out, f"expected custom config model in output, got: {out!r}"
@@ -287,15 +302,17 @@ hostPkgs.testers.runNixOSTest {
     stale_a_data_dir = tempfile.mkdtemp(prefix="opencode-sandbox-test-data-stale-a-")
     with open(os.path.join(stale_a_data_dir, ".opencode-sandbox.lock"), "w") as f:
         f.write("stale\n")
-    out = run_cmd([opencode_launcher, f"--env-file={env_file}", f"--config-dir={config_dir}", f"--data-dir={stale_a_data_dir}", f"--cache-dir={cache_dir}", "--", "--help"], input_text="a\n")
+    out = run_cmd([opencode_launcher, f"--env-file={env_file}", f"--config-dir={config_dir}", f"--data-dir={stale_a_data_dir}", f"--cache-dir={cache_dir}", "--", "models"], input_text="a\n")
     assert "adopt lockfile" in out, f"expected stale-lock prompt for adopt path, got: {out!r}"
-    assert "Usage" in out or "usage" in out, f"expected opencode help output when adopting stale lockfile, got: {out!r}"
+    assert "mock/mock-model" in out, f"expected model output when adopting stale lockfile, got: {out!r}"
+    assert find_opencode_db_files(stale_a_data_dir), f"expected sqlite database file under adopted-lock data dir, got none in: {stale_a_data_dir!r}"
     assert not os.path.exists(os.path.join(stale_a_data_dir, ".opencode-sandbox.lock")), "expected adopted lockfile to be cleaned up after run"
 
     os.remove(env_file)
     os.rmdir(env_dir)
     shutil.rmtree(data_dir)
     shutil.rmtree(exclusive_lock_data_dir)
+    shutil.rmtree(exclusive_models_data_dir)
     shutil.rmtree(memory_data_dir)
     shutil.rmtree(stale_y_data_dir)
     shutil.rmtree(stale_n_data_dir)

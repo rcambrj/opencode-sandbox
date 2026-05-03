@@ -50,7 +50,7 @@ in
         Optional host directory mounted inside the VM and exposed to opencode via XDG_DATA_HOME.
 
         When `exclusiveSqliteLock` is enabled and `dataDir` is set, the launcher uses
-        `OPENCODE_DB=$dataDir/opencode.db` and manages a host lockfile.
+        opencode's default on-disk database location under `XDG_DATA_HOME` and manages a host lockfile.
 
         Shared host filesystems still do not provide the locking and shared-memory behavior SQLite expects.
         `vfs=unix-excl` avoids the shared-memory WAL path, but it is only appropriate when exactly one
@@ -72,7 +72,8 @@ in
       default = null;
       description = ''
         Whether to enable the opencode exclusive SQLite lock behavior (`--exclusive-sqlite-lock=`).
-        When enabled, the launcher creates an opencode lockfile and sets `OPENCODE_DB=$dataDir/opencode.db`.
+        When enabled, the launcher creates an opencode lockfile and configures opencode
+        to use its default on-disk database location under `XDG_DATA_HOME`.
         If a leftover lockfile is found, startup prompts for:
         continue with `:memory:` (`y`), abort (`n`), or adopt lockfile (`a`).
 
