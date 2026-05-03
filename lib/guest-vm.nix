@@ -150,11 +150,19 @@ in
     wants = [ "network-online.target" ];
     serviceConfig.Type = "oneshot";
     script = ''
-      ip="$(${pkgs.iproute2}/bin/ip -4 -o addr show scope global | ${pkgs.gawk}/bin/awk '{ split($4, a, "/"); print a[1]; exit }')"
-      if [ -n "$ip" ]; then
-        printf '%s\n' "$ip" > /mnt/agent-sandbox/control/guest-ip
-        exit 0
-      fi
+      max_attempts=10
+      attempt=0
+      while [ "$attempt" -lt "$max_attempts" ]; do
+        ip="$(${pkgs.iproute2}/bin/ip -4 -o addr show scope global | ${pkgs.gawk}/bin/awk '{ split($4, a, "/"); print a[1]; exit }')"
+        if [ -n "$ip" ]; then
+          printf '%s\n' "$ip" > /mnt/agent-sandbox/control/guest-ip
+          exit 0
+        fi
+
+        attempt=$((attempt + 1))
+        sleep 1
+      done
+
       exit 1
     '';
   };
