@@ -49,13 +49,11 @@ in
       description = ''
         Optional host directory mounted inside the VM and exposed to opencode via XDG_DATA_HOME.
 
-        opencode stores its main state in SQLite. Shared host filesystems still do not provide the
-        locking and shared-memory behavior SQLite expects, so the sandbox defaults OPENCODE_DB to :memory:.
+        When `exclusiveSqliteLock` is enabled and `dataDir` is set, the launcher uses
+        `OPENCODE_DB=file:/mnt/agent-sandbox/data/opencode.db?vfs=unix-excl` and manages a host lockfile.
 
-        If you want database-backed persistence anyway, you can opt in via env file with a SQLite URI such as
-        `OPENCODE_DB=file:/mnt/agent-sandbox/data/opencode.db?vfs=unix-excl`.
-
-        Warning: `vfs=unix-excl` avoids the shared-memory WAL path, but it is only appropriate when exactly one
+        Shared host filesystems still do not provide the locking and shared-memory behavior SQLite expects.
+        `vfs=unix-excl` avoids the shared-memory WAL path, but it is only appropriate when exactly one
         sandbox instance uses that database path at a time. Concurrent instances pointed at the same database can
         fail or corrupt data.
       '';
@@ -66,6 +64,22 @@ in
       default = null;
       description = ''
         Optional host directory mounted inside the VM and exposed to opencode via XDG_CACHE_HOME.
+      '';
+    };
+
+    exclusiveSqliteLock = lib.mkOption {
+      type = lib.types.nullOr lib.types.bool;
+      default = null;
+      description = ''
+        Whether to enable the opencode exclusive SQLite lock behavior (`--exclusive-sqlite-lock=`).
+        When enabled, the launcher creates an opencode lockfile and sets
+        `OPENCODE_DB=file:$dataDir/opencode.db?vfs=unix-excl`.
+        If a leftover lockfile is found, startup prompts for:
+        adopt lockfile (`a`), abort (`n`), or continue with `:memory:` (`y`).
+
+        This only works when `dataDir` is set; without `dataDir`, opencode continues with `OPENCODE_DB=:memory:`.
+
+        Default `null` means the wrapper does not pass the flag and package defaults apply.
       '';
     };
 
@@ -87,6 +101,7 @@ in
           config-dir = cfg.configDir;
           data-dir = cfg.dataDir;
           cache-dir = cfg.cacheDir;
+          exclusive-sqlite-lock = cfg.exclusiveSqliteLock;
           expose-host-ports = lib.concatStringsSep "," (map builtins.toString cfg.exposeHostPorts);
         };
       })

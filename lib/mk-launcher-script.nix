@@ -2,6 +2,7 @@
 { sessionCommand
 , extraFlags ? { }
 , extraFinalize ? (_: "")
+, extraCleanup ? (_: "")
 }:
 args@{ name, emptyDir, vmRunner, coreutils, openssh, guestSystem, guestPkgs, pkgs, sshMaxAttempts, showBootLogs ? false, extraShares ? [ ], ... }:
 ''
@@ -238,6 +239,8 @@ args@{ name, emptyDir, vmRunner, coreutils, openssh, guestSystem, guestPkgs, pkg
   ''}
 
   trap '
+    ${extraCleanup args}
+
     if [ -n "''${tail_pid:-}" ]; then
       kill "$tail_pid" 2>/dev/null || true
       wait "$tail_pid" 2>/dev/null || true

@@ -31,7 +31,6 @@ hostPkgs.testers.runNixOSTest {
   testScript = ''
     import os
     import json
-    import glob
     import shutil
     import socket
     import subprocess
@@ -48,13 +47,14 @@ hostPkgs.testers.runNixOSTest {
 
     # --- Generic mock-sandbox tests ---
 
-    def run_cmd(cmd, expect_success=True):
+    def run_cmd(cmd, expect_success=True, input_text=None):
         result = subprocess.run(
             cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
             timeout=300,
+            input=input_text,
         )
         if expect_success and result.returncode != 0:
             raise Exception(f"exit {result.returncode}: {result.stdout}")
@@ -248,17 +248,51 @@ hostPkgs.testers.runNixOSTest {
     data_dir = tempfile.mkdtemp(prefix="opencode-sandbox-test-data-")
     cache_dir = tempfile.mkdtemp(prefix="opencode-sandbox-test-cache-")
 
-    out = run_cmd([opencode_launcher, f"--env-file={env_file}", f"--config-dir={config_dir}", f"--data-dir={data_dir}", f"--cache-dir={cache_dir}", "--", "models"])
+    out = run_cmd([opencode_launcher, f"--env-file={env_file}", f"--config-dir={config_dir}", f"--data-dir={data_dir}", f"--cache-dir={cache_dir}", "--exclusive-sqlite-lock=false", "--", "models"])
     assert "Database migration complete." in out, f"expected 'Database migration complete.' in output, got: {out!r}"
     assert "mock/mock-model" in out, f"expected custom config model in output, got: {out!r}"
 
     assert os.path.isdir(os.path.join(data_dir, "log")), "expected XDG data log directory to be created"
-    assert not glob.glob(os.path.join(data_dir, "opencode-*.db")), "expected no persistent DB files matching opencode-*.db when OPENCODE_DB=:memory:"
+    assert not os.path.exists(os.path.join(data_dir, "opencode.db")), "expected no opencode.db when --exclusive-sqlite-lock=false"
+    assert not os.path.exists(os.path.join(data_dir, ".opencode-sandbox.lock")), "expected no lockfile when --exclusive-sqlite-lock=false"
     assert os.path.isfile(os.path.join(cache_dir, "version")), "expected XDG cache version file to be created"
+
+    out = run_cmd([opencode_launcher, f"--env-file={env_file}", f"--config-dir={config_dir}", f"--data-dir={data_dir}", f"--cache-dir={cache_dir}", "--exclusive-sqlite-lock=banana", "--", "models"], expect_success=False)
+    assert "--exclusive-sqlite-lock must be true or false" in out, f"expected exclusive sqlite lock validation failure, got: {out!r}"
+
+    memory_data_dir = tempfile.mkdtemp(prefix="opencode-sandbox-test-data-memory-")
+    out = run_cmd([opencode_launcher, f"--env-file={env_file}", f"--config-dir={config_dir}", f"--data-dir={memory_data_dir}", f"--cache-dir={cache_dir}", "--exclusive-sqlite-lock=false", "--", "models"])
+    assert not os.path.exists(os.path.join(memory_data_dir, "opencode.db")), "expected no opencode.db when --exclusive-sqlite-lock=false"
+    assert not os.path.exists(os.path.join(memory_data_dir, ".opencode-sandbox.lock")), "expected no lockfile when --exclusive-sqlite-lock=false"
+
+    stale_y_data_dir = tempfile.mkdtemp(prefix="opencode-sandbox-test-data-stale-y-")
+    with open(os.path.join(stale_y_data_dir, ".opencode-sandbox.lock"), "w") as f:
+        f.write("stale\n")
+    out = run_cmd([opencode_launcher, f"--env-file={env_file}", f"--config-dir={config_dir}", f"--data-dir={stale_y_data_dir}", f"--cache-dir={cache_dir}", "--", "models"], input_text="y\n")
+    assert "continue with :memory:" in out, f"expected stale-lock prompt in output, got: {out!r}"
+    assert not os.path.exists(os.path.join(stale_y_data_dir, "opencode.db")), "expected no opencode.db when choosing :memory: fallback"
+    assert os.path.exists(os.path.join(stale_y_data_dir, ".opencode-sandbox.lock")), "expected stale lockfile to remain when choosing :memory: fallback"
+
+    stale_n_data_dir = tempfile.mkdtemp(prefix="opencode-sandbox-test-data-stale-n-")
+    with open(os.path.join(stale_n_data_dir, ".opencode-sandbox.lock"), "w") as f:
+        f.write("stale\n")
+    out = run_cmd([opencode_launcher, f"--env-file={env_file}", f"--config-dir={config_dir}", f"--data-dir={stale_n_data_dir}", f"--cache-dir={cache_dir}", "--", "models"], expect_success=False, input_text="n\n")
+    assert "aborted by user" in out, f"expected abort message when choosing n, got: {out!r}"
+
+    stale_a_data_dir = tempfile.mkdtemp(prefix="opencode-sandbox-test-data-stale-a-")
+    with open(os.path.join(stale_a_data_dir, ".opencode-sandbox.lock"), "w") as f:
+        f.write("stale\n")
+    out = run_cmd([opencode_launcher, f"--env-file={env_file}", f"--config-dir={config_dir}", f"--data-dir={stale_a_data_dir}", f"--cache-dir={cache_dir}", "--", "--help"], expect_success=False, input_text="a\n")
+    assert "adopt lockfile" in out, f"expected stale-lock prompt for adopt path, got: {out!r}"
+    assert not os.path.exists(os.path.join(stale_a_data_dir, ".opencode-sandbox.lock")), "expected adopted lockfile to be cleaned up after run"
 
     os.remove(env_file)
     os.rmdir(env_dir)
     shutil.rmtree(data_dir)
+    shutil.rmtree(memory_data_dir)
+    shutil.rmtree(stale_y_data_dir)
+    shutil.rmtree(stale_n_data_dir)
+    shutil.rmtree(stale_a_data_dir)
     shutil.rmtree(cache_dir)
     shutil.rmtree(config_dir)
 

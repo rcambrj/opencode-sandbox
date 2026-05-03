@@ -51,6 +51,7 @@ hostPkgs.testers.runNixOSTest {
       dataDir = pkgs.writeTextDir "data" "";
       cacheDir = pkgs.writeTextDir "cache" "";
       envFile = pkgs.writeText "opencode-env" "OPENCODE_TEST=1";
+      exclusiveSqliteLock = true;
     };
   };
 
@@ -153,6 +154,7 @@ hostPkgs.testers.runNixOSTest {
     assert any(arg.startswith("--config-dir=") for arg in args), f"expected --config-dir= arg, got: {args!r}"
     assert "opencode.json" in str(args), f"expected config dir to contain opencode.json, got: {args!r}"
     assert "--expose-host-ports=11434,8080" in args, f"expected --expose-host-ports from module config, got: {args!r}"
+    assert not any(arg.startswith("--exclusive-sqlite-lock=") for arg in args), f"expected no explicit --exclusive-sqlite-lock= when unset, got: {args!r}"
 
     machineWithDirs.wait_for_unit("multi-user.target")
 
@@ -162,6 +164,7 @@ hostPkgs.testers.runNixOSTest {
     assert any(arg.startswith("--data-dir=") for arg in args), f"expected --data-dir= when configured, got: {args!r}"
     assert any(arg.startswith("--cache-dir=") for arg in args), f"expected --cache-dir= when configured, got: {args!r}"
     assert any(arg.startswith("--env-file=") for arg in args), f"expected --env-file= when configured, got: {args!r}"
+    assert "--exclusive-sqlite-lock=true" in args or "--exclusive-sqlite-lock=1" in args, f"expected --exclusive-sqlite-lock=true/1 when configured, got: {args!r}"
 
     out = machine.succeed("opencode-sandbox -- serve --hostname 0.0.0.0")
     args = parse_args(out)

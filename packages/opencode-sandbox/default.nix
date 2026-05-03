@@ -39,6 +39,11 @@ flake.lib.mkSandboxPackage {
   launcherScript = flake.lib.mkLauncherScript {
     sessionCommand = { guestSystem, pkgs, ... }: pkgs.writeShellScriptBin "opencode-wrapper" ''
       export OPENCODE_DB=:memory:
+
+      if [ -r /mnt/agent-sandbox/control/opencode-use-exclusive-sqlite-lock ]; then
+        export OPENCODE_DB='file:/mnt/agent-sandbox/data/opencode.db?vfs=unix-excl'
+      fi
+
       export XDG_CONFIG_HOME=/mnt/agent-sandbox/config
 
       if [ -r /mnt/agent-sandbox/control/opencode-has-data-dir ]; then
@@ -55,14 +60,30 @@ flake.lib.mkSandboxPackage {
       config-dir = "config_dir";
       data-dir = "data_dir";
       cache-dir = "cache_dir";
+      exclusive-sqlite-lock = "exclusive_sqlite_lock";
     };
     extraFinalize = { coreutils, name, emptyDir, ... }: ''
       has_data_dir=0
       has_cache_dir=0
+      use_exclusive_sqlite_lock=1
 
       config_dir="''${config_dir-${emptyDir}}"
       data_dir="''${data_dir-${emptyDir}}"
       cache_dir="''${cache_dir-${emptyDir}}"
+      exclusive_sqlite_lock="''${exclusive_sqlite_lock-true}"
+
+      case "$exclusive_sqlite_lock" in
+        true|1)
+          use_exclusive_sqlite_lock=1
+          ;;
+        false|0)
+          use_exclusive_sqlite_lock=0
+          ;;
+        *)
+          printf '${name}: --exclusive-sqlite-lock must be true or false, got: %s\n' "$exclusive_sqlite_lock" >&2
+          exit 2
+          ;;
+      esac
 
       if [ "$config_dir" = "${emptyDir}" ]; then
         config_dir="$control_dir/opencode-config"
@@ -96,6 +117,43 @@ flake.lib.mkSandboxPackage {
 
       if [ "$has_data_dir" -eq 1 ]; then
         : > "$control_dir/opencode-has-data-dir"
+
+        if [ "$use_exclusive_sqlite_lock" -eq 1 ]; then
+          opencode_lockfile="$data_dir/.opencode-sandbox.lock"
+          if [ -e "$opencode_lockfile" ]; then
+            printf '${name}: detected leftover lockfile: %s\n' "$opencode_lockfile" >&2
+            while true; do
+              printf '${name}: adopt lockfile (a), abort (n), continue with :memory: (y)? [a/n/y] ' >&2
+              if ! IFS= read -r lock_choice; then
+                printf '\n${name}: no response received; aborting\n' >&2
+                exit 1
+              fi
+
+              case "$lock_choice" in
+                a|A)
+                  : > "$control_dir/opencode-use-exclusive-sqlite-lock"
+                  printf '%s\n' "$opencode_lockfile" > "$control_dir/opencode-lockfile-path"
+                  break
+                  ;;
+                n|N)
+                  printf '${name}: aborted by user\n' >&2
+                  exit 1
+                  ;;
+                y|Y)
+                  printf '${name}: continuing with OPENCODE_DB=:memory:\n' >&2
+                  break
+                  ;;
+                *)
+                  printf '${name}: invalid choice: %s\n' "$lock_choice" >&2
+                  ;;
+              esac
+            done
+          else
+            : > "$opencode_lockfile"
+            : > "$control_dir/opencode-use-exclusive-sqlite-lock"
+            printf '%s\n' "$opencode_lockfile" > "$control_dir/opencode-lockfile-path"
+          fi
+        fi
       fi
 
       if [ "$has_cache_dir" -eq 1 ]; then
@@ -105,6 +163,13 @@ flake.lib.mkSandboxPackage {
       export AGENT_SANDBOX_CONFIG_DIR="$config_dir"
       export AGENT_SANDBOX_DATA_DIR="$data_dir"
       export AGENT_SANDBOX_CACHE_DIR="$cache_dir"
+    '';
+    extraCleanup = { ... }: ''
+      if [ -r "$control_dir/opencode-lockfile-path" ]; then
+        if [ -e "$(< "$control_dir/opencode-lockfile-path")" ]; then
+          rm -f "$(< "$control_dir/opencode-lockfile-path")"
+        fi
+      fi
     '';
   };
 }

@@ -82,6 +82,7 @@ Add this repository to your flake inputs:
 
     dataDir = /persist/opencode/data;
     cacheDir = /persist/opencode/cache;
+    exclusiveSqliteLock = true;
     exposeHostPorts = [ 11434 8080 ];
     showBootLogs = false;
     extraModules = [
@@ -140,12 +141,31 @@ claude-sandbox -- --help
 
 ## Notes
 
-> [!NOTE]
-> The `OPENCODE_DB` environment variable is hardcoded to `:memory:` in the opencode guest module so that opencode doesn't create an sqlite database on disk. This is because the sqlite database is stored on the `dataDir` mount via a QEMU/vfkit share. Unfortunately QEMU/vfkit mounts don't handle sqlite database locks (at all) so having multiple instances of opencode-sandbox running would likely result in a corrupted sqlite database very quickly.
+> [!NOTE] `opencode` stores its sessions in an sqlite database. Unfortunately
+> QEMU/vfkit mounts don't handle sqlite database locks so having multiple
+> instances of `opencode-sandbox` running would likely result in a corrupted
+> sqlite database very quickly. You could configure opencode with an sqlite
+> database path of `:memory:`, which means that you lose:
+> - Chat sessions (logs)
+> - Hide thinking (/thinking enabled/disabled)
+>
+> `:memory:` effectively forgets each session as soon as it ends. To mitigate
+> this, `opencode-sandbox` implements an exclusive lock system where one sandbox
+> instance can control the database but simultaneous concurrent instances
+> cannot.
+>
+> This option is enabled by default, as long as `dataDir` is set. It configures
+> `opencode` with `OPENCODE_DB=file:$dataDir/opencode.db?vfs=unix-excl`, creates
+> `.opencode-sandbox.lock`, and removes that lock on normal shutdown.
+>
+> If a leftover lockfile is found at startup, the launcher prompts for:
+> continue with `:memory:` (`y`), abort (`n`), or adopt lockfile (`a`).
+>
+> If `dataDir` is not set, this feature cannot engage and opencode continues with `OPENCODE_DB=:memory:`.
 >
 > The opencode team have said that [they will not support other databases](https://github.com/anomalyco/opencode/issues/7840#issuecomment-3901180429).
 >
-> TODO: determine which features are missing as a result
+> `opencode` probably uses the sqlite database for other things.
 
 > [!WARNING]
 > `envFile`, `configDir`, `dataDir`, and `cacheDir` are exposed read-write inside the guest. Take care what you put there.
